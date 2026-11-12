@@ -168,6 +168,8 @@ export class SessionState {
     this.program = { path, source, assembly };
     this.writes = [];
     this.runner.send({ type: 'load', assembly, breakpoints: $state.snapshot(this.breakpointsFor(path)) });
+    // Optimistic: commands sent before the runner's reply must see the program as loaded.
+    this.state = 'ready';
     return true;
   }
 
@@ -192,6 +194,7 @@ export class SessionState {
     if (!this.ensureLoaded(path, source)) return;
     this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
     this.runner.send({ type: 'run', speed: this.speed });
+    this.state = 'running';
   }
 
   pause(): void {

@@ -80,10 +80,13 @@
   button:hover {
     background: var(--color-control);
   }
+  /* Phone: below the top bar, so the step bar and bottom navigation stay usable. */
   @media (max-width: 640px) {
     .toaster {
       left: 16px;
-      bottom: 76px;
+      right: 16px;
+      top: calc(72px + env(safe-area-inset-top));
+      bottom: auto;
     }
   }
 </style>

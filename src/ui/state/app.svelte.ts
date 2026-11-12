@@ -257,6 +257,7 @@ export class AppController {
   async openFolder(): Promise<void> {
     if (this.ui.layout === 'phone') {
       await this.seedBrowserWorkspace();
+      if (this.workspace.activeFile) this.ui.phoneRegion = 'code';
       return;
     }
     if (!this.workspace.provider.canOpenFolders) {

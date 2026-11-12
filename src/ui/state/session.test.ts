@@ -106,4 +106,15 @@ describe('SessionState', () => {
     expect(s.breakpointsFor('lab2/a.asm')).toEqual([{ line: 3 }]);
     s.dispose();
   });
+
+  it('quick steps sent before the runner answers do not reload the program', async () => {
+    const s = new SessionState(new InlineRunner());
+    const src = 'MOV A, 1\nMOV B, 2\nMOV C, 3\nHLT';
+    s.step('q.asm', src);
+    s.step('q.asm', src);
+    s.step('q.asm', src);
+    await until(() => s.snapshot?.steps === 3);
+    expect(s.console.filter((e) => e.text.startsWith('assemble'))).toHaveLength(1);
+    s.dispose();
+  });
 });

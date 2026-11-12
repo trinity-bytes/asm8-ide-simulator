@@ -11,6 +11,7 @@
     type NumberBase,
   } from '@core/index';
   import Button from '../atoms/Button.svelte';
+  import IconButton from '../atoms/IconButton.svelte';
   import Segmented from '../atoms/Segmented.svelte';
   import FlagCell from '../molecules/FlagCell.svelte';
   import RegisterRow from '../molecules/RegisterRow.svelte';
@@ -20,8 +21,10 @@
   interface Props {
     /** Inside a tab (tablet portrait, phone): no outer title. */
     embedded?: boolean;
+    /** Drawer mode (tablet landscape): shows a close button in the header. */
+    onclose?: () => void;
   }
-  let { embedded = false }: Props = $props();
+  let { embedded = false, onclose }: Props = $props();
 
   const app = AppController.use();
   const s = app.session;
@@ -149,6 +152,7 @@
       options={BASES}
       onchange={(v) => app.settings.set('numberBase', v)}
     />
+    {#if onclose}<IconButton icon="close" label="Hide machine" size="touch" onclick={onclose} />{/if}
   </header>
 
   <div class="card regs" role="group" aria-label="Registers">
@@ -292,6 +296,7 @@
   .head {
     display: flex;
     align-items: center;
+    gap: 12px;
     justify-content: space-between;
     min-height: 30px;
   }

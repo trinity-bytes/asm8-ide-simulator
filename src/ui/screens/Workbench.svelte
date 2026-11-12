@@ -77,15 +77,7 @@
     {#if layout === 'tablet-landscape'}
       {#if ui.machineDrawer}
         <div class="drawer" role="complementary" aria-label="Machine drawer">
-          <div class="drawer-close">
-            <IconButton
-              icon="close"
-              label="Hide machine"
-              size="touch"
-              onclick={() => (ui.machineDrawer = false)}
-            />
-          </div>
-          <MachinePanel />
+          <MachinePanel onclose={() => (ui.machineDrawer = false)} />
         </div>
       {:else}
         <button type="button" class="drawer-tab" onclick={() => (ui.machineDrawer = true)}>Machine</button>
@@ -178,12 +170,6 @@
     display: flex;
     flex-direction: column;
     background: var(--color-ground);
-  }
-  .drawer-close {
-    position: absolute;
-    top: 4px;
-    right: 8px;
-    z-index: 2;
   }
   .drawer-tab {
     position: absolute;

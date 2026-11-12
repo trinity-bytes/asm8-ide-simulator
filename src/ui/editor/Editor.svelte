@@ -273,6 +273,7 @@
 <div
   class="editor"
   class:compact
+  class:no-addresses={!data.showAddresses}
   bind:this={host}
   id="editor-panel"
   role="tabpanel"
@@ -509,6 +510,10 @@
     border: 1px solid var(--color-control);
     border-radius: 4px;
     background-image: none;
+  }
+  /* CodeMirror styles gutters with display: flex !important. */
+  .no-addresses :global(.cm-address-gutter) {
+    display: none !important;
   }
   .compact :global(.cm-lineNumbers .cm-gutterElement) {
     min-width: 40px;
