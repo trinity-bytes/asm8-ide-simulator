@@ -295,6 +295,12 @@
   .editor :global(.cm-editor.cm-focused) {
     outline: none;
   }
+  /* A contenteditable always matches :focus-visible, so the global focus ring
+     would frame the whole text area on every click. The caret and the active
+     line already show focus. */
+  .editor :global(.cm-content:focus-visible) {
+    box-shadow: none;
+  }
   .editor :global(.cm-scroller) {
     font-family: var(--font-mono);
     font-variant-ligatures: none;
