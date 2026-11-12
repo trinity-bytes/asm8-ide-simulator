@@ -170,7 +170,7 @@
       {#each labels as [name, address] (name)}
         <li>
           <button type="button" class="item" onclick={() => app.editor?.gotoLine(labelLine(name))}>
-            <span class="mono">{name}</span>
+            <span class="mono label" title={name}>{name}</span>
             <span class="mono muted">0x{hex(address)}</span>
           </button>
         </li>
@@ -261,6 +261,13 @@
   }
   .muted {
     font-size: 11px;
+    flex: none;
+  }
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .code {
     overflow: hidden;
