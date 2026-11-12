@@ -37,6 +37,8 @@ export interface MachineSnapshot {
 }
 
 export const MAX_WRITES_KEPT = 10_000;
+/** Console bytes kept between two `takeOutput` calls; older ones are counted as dropped. */
+export const MAX_OUTPUT_PENDING = 16 * 1024;
 
 /** Everything needed to put the machine back exactly as it was (Reset → Undo). */
 export interface MachineState {
@@ -68,6 +70,7 @@ export class Machine {
   private input: number[] = [];
   private outputListener: ((bytes: number[]) => void) | null = null;
   private outputBuffer: number[] = [];
+  private outputDropped = 0;
   private _writes: MemoryWrite[] = [];
   private _totalWrites = 0;
   private _steps = 0;
@@ -79,7 +82,14 @@ export class Machine {
   constructor() {
     this.cpu = new Cpu(this.memory, {
       read: () => this.input.shift(),
-      write: (byte) => this.outputBuffer.push(byte),
+      write: (byte) => {
+        this.outputBuffer.push(byte);
+        if (this.outputBuffer.length > MAX_OUTPUT_PENDING * 2) {
+          const drop = this.outputBuffer.length - MAX_OUTPUT_PENDING;
+          this.outputBuffer.splice(0, drop);
+          this.outputDropped += drop;
+        }
+      },
     });
     this.memory.onStore = (address, previous, value) => {
       this._writes.push({ step: this._steps + 1, address, previous, value, line: this.currentLine });
@@ -124,6 +134,7 @@ export class Machine {
     if (this.program) this.memory.loadProgram(this.program.code);
     this.input = [];
     this.outputBuffer = [];
+    this.outputDropped = 0;
     this._writes = [];
     this._totalWrites = 0;
     this._steps = 0;
@@ -138,11 +149,22 @@ export class Machine {
     if (this._status === 'waiting') this._status = 'ready';
   }
 
-  /** Console output produced since the last call. */
+  /** Console output produced since the last call (at most MAX_OUTPUT_PENDING bytes). */
   takeOutput(): number[] {
-    const out = this.outputBuffer;
+    let out = this.outputBuffer;
+    if (out.length > MAX_OUTPUT_PENDING) {
+      this.outputDropped += out.length - MAX_OUTPUT_PENDING;
+      out = out.slice(out.length - MAX_OUTPUT_PENDING);
+    }
     this.outputBuffer = [];
     return out;
+  }
+
+  /** Bytes dropped by `takeOutput` since the last call (output faster than anyone can read). */
+  takeDropped(): number {
+    const n = this.outputDropped;
+    this.outputDropped = 0;
+    return n;
   }
 
   step(): StepResult {

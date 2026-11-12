@@ -253,6 +253,7 @@ export class RunLoop {
       state: this.state,
       snapshot: this.machine.snapshot(),
       output: this.machine.takeOutput(),
+      ...((dropped) => (dropped ? { outputDropped: dropped } : {}))(this.machine.takeDropped()),
       writes: fresh > 0 ? all.slice(all.length - fresh) : [],
       ...(stop ? { stop } : {}),
       ...(restarted ? { restarted } : {}),

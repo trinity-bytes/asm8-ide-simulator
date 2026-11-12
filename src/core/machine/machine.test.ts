@@ -87,4 +87,13 @@ describe('Machine', () => {
     expect(m.memory.data[100]).toBe(0xff);
     expect(m.writes).toEqual([]);
   });
+
+  it('keeps at most 16 KiB of pending console output and counts the rest as dropped', () => {
+    const m = load("loop: MOV A, 'z'\nOUT A\nJMP loop");
+    for (let i = 0; i < 3 * 70_000; i++) m.step();
+    const out = m.takeOutput();
+    expect(out.length).toBe(16 * 1024);
+    expect(out.length + m.takeDropped()).toBe(70_000);
+    expect(m.takeDropped()).toBe(0);
+  });
 });
