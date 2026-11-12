@@ -1,0 +1,115 @@
+@import '@fontsource/public-sans/latin-400.css';
+@import '@fontsource/public-sans/latin-500.css';
+@import '@fontsource/public-sans/latin-600.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+@import './tokens.css';
+
+:root {
+  --font-ui: 'Public Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --code-size: 13px;
+  /* Layout (desktop values from the Figma frames, 1440 × 900). */
+  --titlebar-h: 44px;
+  --statusbar-h: 26px;
+  --rail-w: 52px;
+  --sidebar-w: 248px;
+  --machine-w: 384px;
+  --panel-h: 272px;
+  --tab-h: 36px;
+  --radius: 6px;
+  --focus-ring: 0 0 0 2px var(--color-accent);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45), 0 0 0 1px var(--color-rule);
+  --tint-paused: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  --tint-error: color-mix(in srgb, var(--color-negative) 12%, transparent);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-ground);
+  color: var(--color-text);
+  font: 400 13px/1.4 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  text-size-adjust: 100%;
+}
+
+#app {
+  height: 100dvh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* Thin scrollbars in the control colour, like the Figma frames. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-control) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
