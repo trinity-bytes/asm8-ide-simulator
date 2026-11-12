@@ -1,4 +1,4 @@
-import { Debugger, Machine, type StopReason } from '@core/index';
+import { Debugger, Machine, type MachineState, type StopReason } from '@core/index';
 import type { RunnerCommand, RunnerEvent, RunState, Speed } from './protocol';
 
 /** Injected clock so the loop runs the same in a Web Worker, on the main thread and in tests. */
@@ -37,6 +37,7 @@ export class RunLoop {
   private lastSnapshotAt = 0;
   /** The state to return to after IN receives input. */
   private resumeAfterInput: 'running' | 'paused' = 'paused';
+  private beforeReset: { machine: MachineState; state: RunState } | null = null;
 
   constructor(
     private readonly emit: (event: RunnerEvent) => void,
@@ -47,6 +48,7 @@ export class RunLoop {
     switch (command.type) {
       case 'load':
         this.stopTimer();
+        this.beforeReset = null;
         this.machine.load(command.assembly);
         this.debugger.setBreakpoints(command.breakpoints);
         this.sentWrites = 0;
@@ -55,11 +57,24 @@ export class RunLoop {
         break;
       case 'reset':
         this.stopTimer();
+        this.beforeReset = {
+          machine: this.machine.capture(),
+          state: this.state === 'running' || this.state === 'waiting' ? 'paused' : this.state,
+        };
         this.machine.reset();
         this.debugger.resetHits();
         this.sentWrites = 0;
         this.state = this.machine.status === 'empty' ? 'empty' : 'ready';
         this.publish(undefined, true);
+        break;
+      case 'undoReset':
+        if (this.beforeReset && this.state === 'ready') {
+          this.machine.restore(this.beforeReset.machine);
+          this.state = this.beforeReset.state;
+          this.sentWrites = this.machine.totalWrites;
+          this.beforeReset = null;
+          this.publish(undefined, false, true);
+        }
         break;
       case 'run':
         this.speed = command.speed;
@@ -221,7 +236,7 @@ export class RunLoop {
     this.publish(stop);
   }
 
-  private publish(stop?: StopReason, restarted = false): void {
+  private publish(stop?: StopReason, restarted = false, restored = false): void {
     const all = this.machine.writes;
     const fresh = Math.min(this.machine.totalWrites - this.sentWrites, all.length);
     this.sentWrites = this.machine.totalWrites;
@@ -233,6 +248,7 @@ export class RunLoop {
       writes: fresh > 0 ? all.slice(all.length - fresh) : [],
       ...(stop ? { stop } : {}),
       ...(restarted ? { restarted } : {}),
+      ...(restored ? { restored, allWrites: [...all] } : {}),
     });
   }
 }

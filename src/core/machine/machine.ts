@@ -36,6 +36,24 @@ export interface MachineSnapshot {
 
 export const MAX_WRITES_KEPT = 10_000;
 
+/** Everything needed to put the machine back exactly as it was (Reset → Undo). */
+export interface MachineState {
+  readonly gpr: [number, number, number, number];
+  readonly sp: number;
+  readonly ip: number;
+  readonly zero: boolean;
+  readonly carry: boolean;
+  readonly fault: boolean;
+  readonly memory: Uint8Array;
+  readonly lastAccess: number;
+  readonly steps: number;
+  readonly status: MachineStatus;
+  readonly faultMessage: string | undefined;
+  readonly input: readonly number[];
+  readonly writes: readonly MemoryWrite[];
+  readonly totalWrites: number;
+}
+
 /**
  * The whole simulated computer: CPU, memory, keyboard buffer and console output.
  * Owns a loaded program so it can map addresses back to source lines.
@@ -154,6 +172,44 @@ export class Machine {
   poke(address: number, value: number): void {
     if (address < 0 || address >= this.memory.data.length) return;
     this.memory.data[address] = value & 0xff;
+  }
+
+  capture(): MachineState {
+    const c = this.cpu;
+    return {
+      gpr: [...c.gpr],
+      sp: c.sp,
+      ip: c.ip,
+      zero: c.zero,
+      carry: c.carry,
+      fault: c.fault,
+      memory: this.memory.data.slice(),
+      lastAccess: this.memory.lastAccess,
+      steps: this._steps,
+      status: this._status,
+      faultMessage: this._fault,
+      input: [...this.input],
+      writes: [...this._writes],
+      totalWrites: this._totalWrites,
+    };
+  }
+
+  restore(state: MachineState): void {
+    const c = this.cpu;
+    c.gpr = [...state.gpr];
+    c.sp = state.sp;
+    c.ip = state.ip;
+    c.zero = state.zero;
+    c.carry = state.carry;
+    c.fault = state.fault;
+    this.memory.data.set(state.memory);
+    this.memory.lastAccess = state.lastAccess;
+    this._steps = state.steps;
+    this._status = state.status;
+    this._fault = state.faultMessage;
+    this.input = [...state.input];
+    this._writes = [...state.writes];
+    this._totalWrites = state.totalWrites;
   }
 
   snapshot(): MachineSnapshot {

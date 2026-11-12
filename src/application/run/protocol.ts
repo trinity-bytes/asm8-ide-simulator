@@ -24,6 +24,8 @@ export type RunnerCommand =
   | { readonly type: 'stepOver' }
   | { readonly type: 'stepOut' }
   | { readonly type: 'reset' }
+  /** Puts back the state from just before the last reset (Undo in the reset toast). */
+  | { readonly type: 'undoReset' }
   | { readonly type: 'speed'; readonly speed: Speed }
   | { readonly type: 'input'; readonly bytes: readonly number[] }
   | { readonly type: 'breakpoints'; readonly breakpoints: readonly BreakpointSpec[] }
@@ -42,6 +44,9 @@ export interface RunnerUpdate {
   readonly stop?: StopReason;
   /** Set when the update follows a `reset` or `load` (the UI clears its logs). */
   readonly restarted?: boolean;
+  /** Set after `undoReset`; `allWrites` then replaces the UI's write log. */
+  readonly restored?: boolean;
+  readonly allWrites?: readonly MemoryWrite[];
 }
 
 export type RunnerEvent = RunnerUpdate;
