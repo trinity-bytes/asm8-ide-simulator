@@ -41,6 +41,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Only link previews fetch the social image; keep it out of the offline cache.
+        globIgnores: ['**/og-image.png'],
         navigateFallback: '/index.html',
         cleanupOutdatedCaches: true,
       },
