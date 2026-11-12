@@ -1,6 +1,6 @@
 {
   "name": "asm8",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Asm8: an 8-bit assembler IDE and simulator that runs in the browser and installs as an app",
   "type": "module",
