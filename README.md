@@ -1,28 +1,31 @@
-# Simple 8-bit Assembler Simulator
-A simulator which provides a simplified assembler syntax (based on NASM) and is simulating a x86 like cpu. Press Help inside the simulator to see an overview about the supported instructions.
+# Asm8
 
-####<a href="http://schweigi.github.io/assembler-simulator/index.html" target="_blank">TRY IT ONLINE</a>
+Asm8 is an 8-bit assembler IDE and simulator that runs in the browser and installs as an app.
+It is a modern rewrite of [Simple 8-bit Assembler Simulator](https://github.com/Schweigi/assembler-simulator)
+by Marco Schweighauser (MIT). The original app lives in `legacy/` and is used by the parity tests.
 
-### Features
-- 8-bit CPU
-- 4 general purpose registers
-- 256 bytes of memory
-- Console output
+## Scripts
 
-### How to build
-Make sure you have <a href="http://www.gruntjs.com/" target="_blank">Grunt</a> installed to compile the `asmsimulator.js` script.
-Run `grunt` to build the project.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` | Production build (PWA) in `dist/` |
+| `npm test` | Unit tests (Vitest, 2 workers) |
+| `npm run check` | Type check (`svelte-check`) |
+| `npm run lint` | ESLint |
+| `npm run e2e` | End-to-end tests (Playwright, Chromium, 1 worker) |
 
-### Background
-A technical introduction is available on my blog: [www.mschweighauser.com](https://www.mschweighauser.com/make-your-own-assembler-simulator-in-javascript-part1/).
+## Architecture
 
-### License
-**The MIT License**
+Hexagonal: dependencies point inward, the core knows nothing about the browser.
 
-Copyright (c) 2015 Marco Schweighauser
+```
+src/
+  core/          Pure domain: instruction set, assembler, CPU, debugger rules. No DOM, no Svelte.
+  application/   Use cases and ports (interfaces) the UI talks to: workspace, run session, settings.
+  adapters/      Port implementations: File System Access, OPFS, IndexedDB, Web Worker runner, PWA.
+  ui/            Svelte 5. atoms → molecules → organisms → screens; `state/` holds the containers.
+```
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ESLint enforces the direction: `core` cannot import `application`, `adapters`, `ui` or Svelte;
+`application` cannot import `adapters` or `ui`.

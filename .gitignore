@@ -3,3 +3,8 @@
 .DS_Store
 node_modules/*
 ASMSimulator.iml
+dist/
+dev-dist/
+.codegraph/
+test-results/
+playwright-report/

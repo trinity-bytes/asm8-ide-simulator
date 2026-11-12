@@ -1,14 +1,38 @@
 {
-  "name": "asmsimulator",
-  "version": "0.5.1",
-  "description": "Simple 8-bit Assembler Simulator in Javascript",
-  "author": "Marco Schweighauser",
+  "name": "asm8",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Asm8: an 8-bit assembler IDE and simulator that runs in the browser and installs as an app",
+  "type": "module",
   "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json --threshold error",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test"
+  },
   "devDependencies": {
-    "grunt": "~0.4.1",
-    "grunt-contrib-concat": "~0.3.0",
-    "grunt-contrib-uglify": "~0.2.4",
-    "grunt-contrib-jshint": "~0.7.0",
-    "grunt-contrib-watch": "~0.5.3"
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "eslint-plugin-svelte": "^3.24.1",
+    "globals": "^17.14.0",
+    "jsdom": "^31.0.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-svelte": "^4.1.1",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   }
 }
