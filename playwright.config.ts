@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'list',
   use: { baseURL: 'http://localhost:4173', trace: 'off' },
   webServer: {
-    command: 'npm run preview -- --port 4173 --strictPort',
+    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
     port: 4173,
     reuseExistingServer: true,
   },

@@ -43,7 +43,6 @@
 >
   <span class="name">{title}</span>
   <!-- Not a nested button (a tab cannot contain controls): keyboard users close with Delete or Alt+W. -->
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <span
     class="close"
     class:dirty
