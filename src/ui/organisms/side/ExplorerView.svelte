@@ -114,7 +114,7 @@
     <div class="empty">
       <p>No folder open. Asm8 edits the .asm files on your disk directly; nothing is uploaded.</p>
       <Button variant="primary" block onclick={() => app.openFolder()}>
-        {ws.provider.canOpenFolders ? 'Open folder' : 'Open browser workspace'}
+        {app.canOpenFolders ? 'Open folder' : 'Open browser workspace'}
       </Button>
       <Button block onclick={() => app.newFile()}>New file</Button>
     </div>

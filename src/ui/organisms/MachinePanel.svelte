@@ -93,6 +93,13 @@
     return c.join(' ');
   }
 
+  /** Hex byte, or the character on the display rows (· when empty). */
+  function cellText(i: number): string {
+    const v = mem[i] ?? 0;
+    if (i >= DISPLAY_START) return v >= 32 && v < 127 ? String.fromCharCode(v) : v === 0 ? '·' : hex(v);
+    return hex(v);
+  }
+
   function select(i: number) {
     selected = selected === i ? null : i;
     editValue = `0x${hex(mem[i] ?? 0)}`;
@@ -201,17 +208,13 @@
               data-addr={i}
               class={cellClass(i)}
               tabindex={i === (selected ?? 0) ? 0 : -1}
-              aria-label="0x{hex(i)}: 0x{hex(mem[i] ?? 0)}{i === regs.ip ? ', IP' : ''}{i === regs.sp
+              aria-label="{cellText(i)}, address 0x{hex(i)}{i === regs.ip ? ', IP' : ''}{i === regs.sp
                 ? ', SP'
                 : ''}"
               onclick={() => select(i)}
               onkeydown={(e) => gridKey(e, i)}
             >
-              {i >= DISPLAY_START && (mem[i] ?? 0) >= 32 && (mem[i] ?? 0) < 127
-                ? String.fromCharCode(mem[i]!)
-                : i >= DISPLAY_START && !mem[i]
-                  ? '·'
-                  : hex(mem[i] ?? 0)}
+              {cellText(i)}
             </button>
           {/each}
         </div>

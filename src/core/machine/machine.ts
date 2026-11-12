@@ -31,6 +31,8 @@ export interface MachineSnapshot {
   /** Source line of the instruction at IP, if IP points at one. */
   readonly line: number | undefined;
   readonly fault: string | undefined;
+  /** Address of the instruction that faulted (IP may already point past it, as in the legacy CPU). */
+  readonly faultAddress: number | undefined;
   readonly pendingInput: number;
 }
 
@@ -49,6 +51,7 @@ export interface MachineState {
   readonly steps: number;
   readonly status: MachineStatus;
   readonly faultMessage: string | undefined;
+  readonly faultAt: number | undefined;
   readonly input: readonly number[];
   readonly writes: readonly MemoryWrite[];
   readonly totalWrites: number;
@@ -70,6 +73,7 @@ export class Machine {
   private _steps = 0;
   private _status: MachineStatus = 'empty';
   private _fault: string | undefined;
+  private _faultAt: number | undefined;
   private currentLine: number | undefined;
 
   constructor() {
@@ -124,6 +128,7 @@ export class Machine {
     this._totalWrites = 0;
     this._steps = 0;
     this._fault = undefined;
+    this._faultAt = undefined;
     this._status = this.program ? 'ready' : 'empty';
   }
 
@@ -146,7 +151,8 @@ export class Machine {
     if (this._status === 'fault')
       return { kind: 'fault', message: this._fault ?? 'FAULT. Reset to continue.' };
 
-    this.currentLine = this.lineAt(this.cpu.ip);
+    const at = this.cpu.ip;
+    this.currentLine = this.lineAt(at);
     try {
       const outcome = this.cpu.step();
       if (outcome === 'waiting') {
@@ -164,6 +170,7 @@ export class Machine {
       if (!(e instanceof MachineFault)) throw e;
       this._status = 'fault';
       this._fault = e.message;
+      this._faultAt = at;
       return { kind: 'fault', message: e.message };
     }
   }
@@ -188,6 +195,7 @@ export class Machine {
       steps: this._steps,
       status: this._status,
       faultMessage: this._fault,
+      faultAt: this._faultAt,
       input: [...this.input],
       writes: [...this._writes],
       totalWrites: this._totalWrites,
@@ -207,6 +215,7 @@ export class Machine {
     this._steps = state.steps;
     this._status = state.status;
     this._fault = state.faultMessage;
+    this._faultAt = state.faultAt;
     this.input = [...state.input];
     this._writes = [...state.writes];
     this._totalWrites = state.totalWrites;
@@ -219,8 +228,11 @@ export class Machine {
       memory: this.memory.data.slice(),
       lastAccess: this.memory.lastAccess,
       steps: this._steps,
-      line: this.lineAt(this.cpu.ip),
+      line: this.lineAt(
+        this._status === 'fault' && this._faultAt !== undefined ? this._faultAt : this.cpu.ip,
+      ),
       fault: this._fault,
+      faultAddress: this._faultAt,
       pendingInput: this.input.length,
     };
   }

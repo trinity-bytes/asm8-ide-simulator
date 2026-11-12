@@ -237,7 +237,16 @@ export class AppController {
     if (path) this.workspace.renaming = path;
   }
 
+  /** Real folders on Chromium desktop; phones and other browsers use the browser workspace. */
+  get canOpenFolders(): boolean {
+    return this.workspace.provider.canOpenFolders && this.ui.layout !== 'phone';
+  }
+
   async openFolder(): Promise<void> {
+    if (this.ui.layout === 'phone') {
+      await this.seedBrowserWorkspace();
+      return;
+    }
     if (!this.workspace.provider.canOpenFolders) {
       await this.workspace.openBrowserWorkspace();
       this.ui.toast('This browser cannot open folders: using the browser workspace.');

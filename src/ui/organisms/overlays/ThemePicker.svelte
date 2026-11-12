@@ -57,7 +57,7 @@
         onkeydown={() => {}}
       >
         <span class="sw" style:background={t.swatches[0]}
-          >{#each t.swatches.slice(1) as c (c)}<i style:background={c}></i>{/each}</span
+          >{#each t.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}</span
         >
         <span>{t.name}</span>
         {#if t.id === original}<span class="cur">current</span>{/if}

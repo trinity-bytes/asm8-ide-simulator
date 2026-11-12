@@ -62,6 +62,9 @@ describe('Machine', () => {
   it('stops on a fault, keeps the message and refuses to run until reset', () => {
     const m = load('DIV 0');
     expect(m.step()).toEqual({ kind: 'fault', message: 'Division by 0' });
+    // IP moved past the opcode (legacy behaviour) but the snapshot points at the faulting line.
+    expect(m.cpu.ip).toBe(1);
+    expect(m.snapshot()).toMatchObject({ line: 0, faultAddress: 0 });
     expect(m.step()).toEqual({ kind: 'fault', message: 'Division by 0' });
     m.reset();
     expect(m.status).toBe('ready');

@@ -167,7 +167,7 @@ export class SessionState {
     }
     this.program = { path, source, assembly };
     this.writes = [];
-    this.runner.send({ type: 'load', assembly, breakpoints: this.breakpointsFor(path) });
+    this.runner.send({ type: 'load', assembly, breakpoints: $state.snapshot(this.breakpointsFor(path)) });
     return true;
   }
 
@@ -321,7 +321,7 @@ export class SessionState {
         );
         break;
       case 'fault':
-        this.log('err', `${stop.message} at ${ip}${lineNote('')}`, {
+        this.log('err', `${stop.message} at 0x${hex(s.faultAddress ?? s.registers.ip)}${lineNote('')}`, {
           meta: clock(),
           ...(s.line !== undefined ? { line: s.line } : {}),
         });

@@ -232,7 +232,7 @@
                         onclick={() => setTheme(t.id)}
                       >
                         <span class="sw" style:background={t.swatches[0]}>
-                          {#each t.swatches.slice(1) as c (c)}<i style:background={c}></i>{/each}
+                          {#each t.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}
                         </span>
                         {t.name}
                       </button>

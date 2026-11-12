@@ -219,7 +219,9 @@
   {:else if s.state === 'fault'}
     <div class="problem" role="alert">
       <Icon name="error" />
-      <span class="msg">{s.snapshot?.fault} at 0x{hex(s.snapshot?.registers.ip ?? 0)}</span>
+      <span class="msg"
+        >{s.snapshot?.fault} at 0x{hex(s.snapshot?.faultAddress ?? s.snapshot?.registers.ip ?? 0)}</span
+      >
       <Button size="lg" onclick={() => app.reset()}>Reset</Button>
     </div>
   {/if}

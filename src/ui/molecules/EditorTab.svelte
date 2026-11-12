@@ -30,6 +30,9 @@
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onselect();
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      onclose();
     }
   }}
   onauxclick={(e) => e.button === 1 && onclose()}
@@ -39,12 +42,13 @@
   {ondrop}
 >
   <span class="name">{title}</span>
-  <button
-    type="button"
+  <!-- Not a nested button (a tab cannot contain controls): keyboard users close with Delete or Alt+W. -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <span
     class="close"
     class:dirty
-    tabindex="-1"
-    aria-label="Close {title}{dirty ? ' (unsaved changes)' : ''}"
+    role="presentation"
+    title="Close{dirty ? ' (unsaved changes)' : ''}"
     onclick={(e) => {
       e.stopPropagation();
       onclose();
@@ -52,7 +56,8 @@
   >
     <span class="dot" aria-hidden="true"></span>
     <Icon name="close" size={14} />
-  </button>
+  </span>
+  {#if dirty}<span class="sr-only">, unsaved changes</span>{/if}
 </div>
 
 <style>
@@ -96,6 +101,7 @@
     white-space: nowrap;
   }
   .close {
+    cursor: pointer;
     display: grid;
     place-items: center;
     width: 20px;
