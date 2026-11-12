@@ -7,7 +7,7 @@ import {
   type FileEntry,
   type FileSystemPort,
 } from '@app/workspace/file-system';
-import type { RecentFolder, WorkspaceProvider } from '@app/workspace/workspace-provider';
+import type { PickedFile, RecentFolder, WorkspaceProvider } from '@app/workspace/workspace-provider';
 
 export type TabKind = 'file' | 'settings' | 'reference';
 
@@ -448,6 +448,11 @@ export class WorkspaceState {
   async importFiles(): Promise<number> {
     const picked = await this.attempt(() => this.provider.pickFiles());
     if (!picked?.length) return 0;
+    return this.importPicked(picked);
+  }
+
+  /** Copies files into the workspace (the browser workspace when none or the examples are open). */
+  async importPicked(picked: readonly PickedFile[]): Promise<number> {
     if (!this.fs || this.fs.kind === 'examples') await this.openBrowserWorkspace();
     let last: string | null = null;
     for (const f of picked) {

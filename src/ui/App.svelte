@@ -4,6 +4,8 @@
   import { createRunner } from '@adapters/runner/worker-runner';
   import { LocalSettingsRepository } from '@adapters/storage/local-settings';
   import { setupInstall } from '@adapters/pwa/install';
+  import { onLaunchFiles } from '@adapters/pwa/launch-queue';
+  import { registerServiceWorker } from '@adapters/pwa/service-worker';
   import Overlays from './organisms/overlays/Overlays.svelte';
   import PhoneWorkbench from './screens/PhoneWorkbench.svelte';
   import Workbench from './screens/Workbench.svelte';
@@ -53,6 +55,27 @@
     addEventListener('offline', onOnline);
     addEventListener('beforeunload', onBeforeUnload);
     onOnline();
+    registerServiceWorker(
+      (apply) =>
+        app.ui.toast(
+          'A new version of Asm8 is ready.',
+          'info',
+          {
+            label: 'Reload',
+            run: async () => {
+              if (app.workspace.dirtyTabs.length) await app.saveAll();
+              apply();
+            },
+          },
+          60_000,
+        ),
+      () => app.ui.toast('Asm8 now works offline.', 'positive'),
+    );
+    onLaunchFiles((files) => {
+      void app.workspace
+        .importPicked(files)
+        .then((n) => n && app.ui.toast(`Opened ${files.map((f) => f.name).join(', ')}`));
+    });
     const stopInstall = setupInstall(
       (prompt) => app.setInstallPrompt(prompt),
       () => (app.installed = true),
