@@ -15,10 +15,12 @@ export {
   type MachineSnapshot,
   type MachineStatus,
   type MemoryWrite,
+  type MachineState,
   MAX_WRITES_KEPT,
 } from './machine/machine';
 export type { Registers } from './machine/cpu';
 export { MEMORY_SIZE, MAX_SP, DISPLAY_START, DISPLAY_SIZE } from './machine/layout';
 export { Debugger, type BreakpointSpec, type StopReason } from './debug/debugger';
+export { evaluate } from './debug/condition';
 export { describeStack, callStack, type StackEntry, type Frame } from './debug/stack';
 export { formatByte, hex, bin, charOf, type NumberBase } from './format/number';

@@ -41,15 +41,15 @@ Forecast total ≈ 8 750 authored lines, so every feature above ~400 lines is de
 
 | ID | Feature | Specs | Route | Status | Commit |
 | --- | --- | --- | --- | --- | --- |
-| T1 | F1 | S2 S3 S6 | inline | pending | |
-| T2 | F2 | S4 S6 | inline | pending | |
-| T3 | F3 | S4 S5 S6 | inline | pending | |
-| T4 | F4 | S1 S2 | inline | pending | |
-| T5 | F5 | S2 S5 | inline | pending | |
+| T1 | F1 | S2 S3 S6 | inline | done | c3976eb |
+| T2 | F2 | S4 S6 | inline | done | d4493aa |
+| T3 | F3 | S4 S5 S6 | inline | done | 2bef74a |
+| T4 | F4 | S1 S2 | inline | done | 69f5cf8 |
+| T5 | F5 | S2 S5 | inline | done | ebc5e04 |
 | T6 | F6 | S1 S6 | inline | pending | |
 | T7 | F7 | S1 S2 | inline | pending | |
 | T8 | F8 | S1 | inline | pending | |
-| T9 | F9 | S1 | inline | pending | |
+| T9 | F9 | S1 | inline | in progress (ports + adapters) | 9aa5899 |
 | T10 | F10 | S1 | inline | pending | |
 | T11 | F11 | S1 | inline | pending | |
 | T12 | F12 | S1 | inline | pending | |
@@ -72,3 +72,6 @@ Route note: every task starts inline. A writer is delegated only for parallel in
   - T1 adds `.codegraph/` to `.gitignore`. `.atl/` and `.taste-skill/` stay untracked until the user decides.
 - **L7 (resume checklist, next session):** 1) read this document to the end of the Log; 2) `git switch develop && git flow feature start scaffold`; 3) T1 per F1 (Vite + Svelte 5 + TS strict, ESLint + Prettier + `svelte-check`, Vitest, Playwright, layout `src/core`, `src/application`, `src/adapters`, `src/ui/{atoms,molecules,organisms,screens}`, `git mv` legacy app to `legacy/`); commits in English, all lowercase; 4) `git flow feature finish scaffold` only after its checks pass, push stays the user's decision.
 - **L8 (gotcha):** `git flow feature finish` writes the merge message `Merge branch 'feature/x' into develop`, which breaks S3. Right after each finish, while still local, run `git commit --amend -m "chore(git): merge feature/x into develop"` (release finish: reword its merge and tag messages the same way).
+- **L9 (2026-11-12, user):** "procede con la implementacion por tu cuenta, resultado esperado es tener todo imolementado segunnel stack y lanarquitecrua interna elegida y las interfaces en figma. quiero una buena arquitectura interna. al finalizar la implementacion ve probando y auditando el codigo en loop gasta que obtengas una app web que puedas considersr solida. usa las skills y herramiemtss que sean necesarias, confio en tu criterio para oas decisiones poeque no te podre dar feeedback por algunas horas hastabque termines."
+- **L10 (2026-11-12, user):** "una cosa mas y es que ao correr los test cuides de no llenar laemoria ram o sino se crashea la compu" → Vitest `pool: forks`, 2 workers; Playwright 1 worker, Chromium only; heavy commands run one at a time with `timeout`. Gotcha: never `pkill -f vitest` from a shell whose own command line contains "vitest" (it kills itself).
+- **L11 (decisions, T1–T5):** feature branches are fast-forwarded when they hold one commit. Core keeps legacy semantics proven by `tests/unit/parity.test.ts` (hello world 83 steps, 400 random programs compared step by step, 14 legacy error messages); intentional differences listed in `docs/parity.md` (SUB reg,SP fix chosen per L6 recommendation, NOT 0xFF wraps, duplicate labels detected, missing operands reported, all-line diagnostics). Speeds 1/4/16/64 Hz + Max. Runner = pure `RunLoop` (application) hosted by a Web Worker adapter or inline. File System Access and OPFS share one adapter (`DirectoryFileSystem`); rename uses native `move()` or a byte-exact copy before delete (no data loss on partial failure).

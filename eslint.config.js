@@ -9,7 +9,7 @@ export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs.recommended,
-  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node, __APP_VERSION__: 'readonly' } } },
   {
     files: ['**/*.svelte', '**/*.svelte.ts'],
     languageOptions: { parserOptions: { parser: ts.parser, svelteConfig } },
@@ -45,6 +45,9 @@ export default ts.config(
   {
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // State containers replace collections immutably ($state.raw) and local Sets/Maps inside
+      // functions are temporaries; SvelteSet/SvelteMap would add reactivity nobody reads.
+      'svelte/prefer-svelte-reactivity': 'off',
     },
   },
 );

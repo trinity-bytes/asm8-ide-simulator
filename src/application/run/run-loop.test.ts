@@ -151,4 +151,18 @@ describe('RunLoop', () => {
     loop.handleCommand({ type: 'run', speed: 4 });
     expect(last().state).toBe('empty');
   });
+
+  it('undoReset puts the machine back as it was before the reset', () => {
+    const { loop, last } = setup('MOV [200], 5\nMOV A, 9\nHLT');
+    loop.handleCommand({ type: 'step' });
+    loop.handleCommand({ type: 'step' });
+    loop.handleCommand({ type: 'reset' });
+    expect(last().snapshot.registers.gpr[0]).toBe(0);
+    loop.handleCommand({ type: 'undoReset' });
+    expect(last()).toMatchObject({ state: 'paused', restored: true });
+    expect(last().snapshot.registers.gpr[0]).toBe(9);
+    expect(last().snapshot.memory[200]).toBe(5);
+    expect(last().snapshot.steps).toBe(2);
+    expect(last().allWrites).toHaveLength(1);
+  });
 });

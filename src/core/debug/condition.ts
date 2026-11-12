@@ -151,3 +151,23 @@ export function compileCondition(src: string): Condition {
   if (pos < tokens.length) throw new ConditionError(`Unexpected "${(tokens[pos] as Token).v}"`);
   return result;
 }
+
+/** Evaluates an expression (watch list, hover) against registers and memory. */
+export function evaluate(
+  src: string,
+  registers: { gpr: readonly number[]; sp: number; ip: number; zero: boolean; carry: boolean },
+  memory: Uint8Array,
+): { value: number } | { error: string } {
+  try {
+    const fn = compileCondition(src);
+    const value = fn({
+      register: (name) =>
+        name === 'SP' ? registers.sp : name === 'IP' ? registers.ip : registers.gpr['ABCD'.indexOf(name)]!,
+      flag: (name) => (name === 'Z' ? registers.zero : registers.carry),
+      memory: (address) => memory[address & 0xff]!,
+    });
+    return { value };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+}
