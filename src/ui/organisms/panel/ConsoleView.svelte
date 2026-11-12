@@ -53,7 +53,7 @@
     let ch: string | null = null;
     if (e.key === 'Enter') ch = '\n';
     else if (e.key === 'Backspace') ch = '\b';
-    else if (e.key === 'Tab') ch = '\t';
+    // Tab is left alone so keyboard users can move on (no keyboard trap).
     else if (e.key === 'Escape') ch = '\x1b';
     else if (e.key.length === 1) ch = e.key;
     if (ch === null) return;
@@ -267,6 +267,7 @@
   }
   .input:focus-within {
     border-top-color: var(--color-accent);
+    box-shadow: inset 0 1px var(--color-accent);
   }
   .waiting .kind {
     color: var(--color-accent);
