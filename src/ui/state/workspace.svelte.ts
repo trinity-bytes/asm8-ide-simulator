@@ -39,12 +39,22 @@ export class WorkspaceState {
   expanded = $state<Record<string, boolean>>({});
   tabs = $state<Tab[]>([]);
   activeId = $state<string | null>(null);
+  /** Last file tab that was active: Run keeps targeting it while Settings or a reference is shown. */
+  private lastFileId = $state<string | null>(null);
   recents = $state.raw<RecentFolder[]>([]);
   busy = $state(false);
   /** Path being renamed inline in the explorer. */
   renaming = $state<string | null>(null);
   /** Last error to show in a toast; the UI clears it. */
   error = $state<string | null>(null);
+
+  /**
+   * Asked before switching workspace while files have unsaved changes; resolves false to stay.
+   * The app wires it to a Save / Don't save / Cancel dialog.
+   */
+  beforeSwitch: ((dirty: Tab[]) => Promise<boolean>) | null = null;
+  /** Told about renames so other state keyed by path (breakpoints, loaded program) can follow. */
+  onRenamed: ((from: string, to: string) => void) | null = null;
 
   constructor(readonly provider: WorkspaceProvider) {}
 
@@ -57,6 +67,11 @@ export class WorkspaceState {
   get activeFile(): Tab | null {
     const t = this.active;
     return t?.kind === 'file' ? t : null;
+  }
+
+  /** The program the user is working on: the active file, or the last file tab that was active. */
+  get currentFile(): Tab | null {
+    return this.activeFile ?? this.tabs.find((t) => t.id === this.lastFileId) ?? null;
   }
 
   get dirtyTabs(): Tab[] {
@@ -104,7 +119,9 @@ export class WorkspaceState {
   }
 
   /** Switches workspace. `restore` reopens the tabs of its last session (or its first .asm file). */
-  async use(fs: FileSystemPort, granted = true, restore = true): Promise<void> {
+  async use(fs: FileSystemPort, granted = true, restore = true): Promise<boolean> {
+    const dirty = this.dirtyTabs;
+    if (dirty.length && this.beforeSwitch && !(await this.beforeSwitch(dirty))) return false;
     this.fs = fs;
     this.needsAccess = !granted;
     this.entries = [];
@@ -116,13 +133,13 @@ export class WorkspaceState {
     }
     void this.provider.rememberCurrent(fs);
     this.recents = await this.provider.recent().catch(() => this.recents);
+    return true;
   }
 
   async openFolder(): Promise<boolean> {
     const fs = await this.attempt(() => this.provider.openFolder());
     if (!fs) return false;
-    await this.use(fs);
-    return true;
+    return this.use(fs);
   }
 
   async openBrowserWorkspace(): Promise<void> {
@@ -131,7 +148,7 @@ export class WorkspaceState {
   }
 
   async openExamples(file?: string): Promise<void> {
-    if (this.fs?.kind !== 'examples') await this.use(this.provider.examples(), true, !file);
+    if (this.fs?.kind !== 'examples' && !(await this.use(this.provider.examples(), true, !file))) return;
     if (file) await this.openFile(file);
   }
 
@@ -202,6 +219,7 @@ export class WorkspaceState {
 
   activate(id: string): void {
     this.activeId = id;
+    if (id.startsWith('file:')) this.lastFileId = id;
     this.persistTabs();
   }
 
@@ -281,6 +299,13 @@ export class WorkspaceState {
     const fs = this.fs;
     if (!tab || tab.kind !== 'file' || !fs) return false;
     const text = tab.text;
+    // Someone else changed the file since we loaded it: ask (banner) instead of overwriting.
+    const onDisk = await fs.stat(tab.key).catch(() => null);
+    if (onDisk !== null && onDisk > tab.lastModified) {
+      tab.changedOnDisk = true;
+      this.error = `${tab.title} changed on disk. Choose Keep mine or Load from disk.`;
+      return false;
+    }
     const lastModified = await this.attempt(() => fs.write(tab.key, text));
     if (lastModified === undefined) return false;
     tab.saved = text;
@@ -312,18 +337,23 @@ export class WorkspaceState {
       if (tab.kind !== 'file') continue;
       const modified = await fs.stat(tab.key).catch(() => null);
       if (modified !== null && modified > tab.lastModified) {
-        if (!this.isDirty(tab)) await this.reload(tab.id);
+        if (!this.isDirty(tab)) await this.reload(tab.id, true);
         else tab.changedOnDisk = true;
       }
     }
   }
 
-  async reload(id: string): Promise<void> {
+  /** Loads the disk copy. `onlyIfClean` skips it when the user typed while the file was read. */
+  async reload(id: string, onlyIfClean = false): Promise<void> {
     const tab = this.tabs.find((t) => t.id === id);
     const fs = this.fs;
     if (!tab || !fs) return;
     const content = await this.attempt(() => fs.read(tab.key));
     if (!content) return;
+    if (onlyIfClean && this.isDirty(tab)) {
+      tab.changedOnDisk = true;
+      return;
+    }
     tab.text = content.text;
     tab.saved = content.text;
     tab.lastModified = content.lastModified;
@@ -406,11 +436,14 @@ export class WorkspaceState {
       if (t.kind === 'file' && (t.key === path || t.key.startsWith(path + '/'))) {
         const key = to + t.key.slice(path.length);
         const wasActive = this.activeId === t.id;
+        const wasLast = this.lastFileId === t.id;
         Object.assign(t, { id: tabId('file', key), key, title: basename(key) });
         if (wasActive) this.activeId = t.id;
+        if (wasLast) this.lastFileId = t.id;
       }
     }
     if (this.expanded[path] !== undefined) this.expanded[to] = this.expanded[path]!;
+    this.onRenamed?.(path, to);
     await this.refresh();
     this.persistTabs();
     return null;
@@ -454,6 +487,7 @@ export class WorkspaceState {
   /** Copies files into the workspace (the browser workspace when none or the examples are open). */
   async importPicked(picked: readonly PickedFile[]): Promise<number> {
     if (!this.fs || this.fs.kind === 'examples') await this.openBrowserWorkspace();
+    if (!this.fs || this.fs.kind === 'examples') return 0;
     let last: string | null = null;
     for (const f of picked) {
       const name = this.siblingsOf('').some((n) => n.toLowerCase() === f.name.toLowerCase())

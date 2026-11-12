@@ -219,7 +219,26 @@ export class SessionState {
   /** Stop = reset without undo (Run and debug "Stop"). */
   stop(): void {
     if (this.state === 'empty') return;
-    this.runner.send({ type: 'reset' });
+    this.undoAvailable = false;
+    this.runner.send({ type: 'reset', keepUndo: false });
+  }
+
+  /** Reload the program from scratch and run it, even while a run is in progress. */
+  restart(path: string, source: string): void {
+    this.undoAvailable = false;
+    // `load` stops any running clock in the runner before anything else happens.
+    if (!this.load(path, source)) return;
+    this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
+    this.runner.send({ type: 'run', speed: this.speed });
+  }
+
+  /** A file was renamed: breakpoints and the loaded program follow it. */
+  renamePath(from: string, to: string): void {
+    const move = (p: string) => (p === from || p.startsWith(from + '/') ? to + p.slice(from.length) : p);
+    const next: Record<string, BreakpointSpec[]> = {};
+    for (const [p, list] of Object.entries(this.breakpoints)) next[move(p)] = list;
+    this.breakpoints = next;
+    if (this.program) this.program = { ...this.program, path: move(this.program.path) };
   }
 
   setSpeed(speed: Speed): void {

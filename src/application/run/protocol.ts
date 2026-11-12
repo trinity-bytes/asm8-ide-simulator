@@ -23,7 +23,8 @@ export type RunnerCommand =
   | { readonly type: 'step' }
   | { readonly type: 'stepOver' }
   | { readonly type: 'stepOut' }
-  | { readonly type: 'reset' }
+  /** `keepUndo: false` (Stop) also forgets the state an Undo would bring back. */
+  | { readonly type: 'reset'; readonly keepUndo?: boolean }
   /** Puts back the state from just before the last reset (Undo in the reset toast). */
   | { readonly type: 'undoReset' }
   | { readonly type: 'speed'; readonly speed: Speed }

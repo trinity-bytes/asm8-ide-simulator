@@ -165,4 +165,22 @@ describe('RunLoop', () => {
     expect(last().snapshot.steps).toBe(2);
     expect(last().allWrites).toHaveLength(1);
   });
+
+  it('a speed change before the first tick keeps the run going', () => {
+    const { loop, clock, last } = setup('MOV A, 1\nMOV A, 2\nHLT');
+    loop.handleCommand({ type: 'run', speed: 4 });
+    loop.handleCommand({ type: 'speed', speed: 'max' });
+    clock.advance(0);
+    expect(last()).toMatchObject({ state: 'halted' });
+  });
+
+  it('reset with keepUndo false forgets the undo state', () => {
+    const { loop, last } = setup('MOV A, 9\nHLT');
+    loop.handleCommand({ type: 'step' });
+    loop.handleCommand({ type: 'reset' });
+    loop.handleCommand({ type: 'reset', keepUndo: false });
+    loop.handleCommand({ type: 'undoReset' });
+    expect(last().snapshot.registers.gpr[0]).toBe(0);
+    expect(last().restored).toBeUndefined();
+  });
 });

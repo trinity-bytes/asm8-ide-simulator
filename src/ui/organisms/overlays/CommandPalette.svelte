@@ -50,8 +50,10 @@
           run: x.c.run,
         }));
       }
+      // Ties keep the registry order (Start before Step), like VS Code.
       return all
-        .sort((a, b) => b.score! - a.score!)
+        .map((x, i) => ({ ...x, i }))
+        .sort((a, b) => Math.round(b.score!) - Math.round(a.score!) || a.i - b.i)
         .map(({ c }) => ({
           id: c.id,
           title: `${c.category}: ${c.title}`,

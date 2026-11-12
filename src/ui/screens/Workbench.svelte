@@ -19,7 +19,10 @@
   const layout = $derived(ui.layout);
   const touch = $derived(layout !== 'desktop');
   const portrait = $derived(layout === 'tablet-portrait');
-  const showMachine = $derived(layout === 'desktop' && app.workspace.active !== null);
+  // Settings takes the full width (Figma "Settings"); files and references keep the Machine panel.
+  const showMachine = $derived(
+    layout === 'desktop' && app.workspace.active !== null && app.workspace.active.kind !== 'settings',
+  );
 
   // Panel height is resizable (drag the top edge), remembered per session.
   let panelHeight = $state(272);

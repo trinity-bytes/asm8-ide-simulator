@@ -86,4 +86,24 @@ describe('SessionState', () => {
     expect(s.console.find((e) => e.kind === 'tty')?.text).toBe('z');
     s.dispose();
   });
+
+  it('restart reloads and runs again even while running', async () => {
+    const s = new SessionState(new InlineRunner());
+    s.speed = 1;
+    s.run('r.asm', 'loop: JMP loop');
+    await until(() => s.state === 'running');
+    s.restart('r.asm', 'MOV A, 1\nHLT');
+    s.setSpeed('max');
+    await until(() => s.state === 'halted');
+    expect(s.snapshot?.registers.gpr[0]).toBe(1);
+    s.dispose();
+  });
+
+  it('breakpoints and the loaded program follow a rename', () => {
+    const s = new SessionState(new InlineRunner());
+    s.toggleBreakpoint('lab/a.asm', 3);
+    s.renamePath('lab', 'lab2');
+    expect(s.breakpointsFor('lab2/a.asm')).toEqual([{ line: 3 }]);
+    s.dispose();
+  });
 });

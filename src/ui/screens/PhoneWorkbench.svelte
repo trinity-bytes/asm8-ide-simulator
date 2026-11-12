@@ -100,14 +100,14 @@
       variant="primary"
       size="lg"
       icon={primary.icon}
-      disabled={!ws.activeFile && !s.program}
+      disabled={!ws.currentFile && !s.program}
       onclick={() => app.toggleRun()}>{primary.label}</Button
     >
     <IconButton
       icon="step"
       label="Step"
       size="touch"
-      disabled={s.running || (!ws.activeFile && !s.program)}
+      disabled={s.running || (!ws.currentFile && !s.program)}
       onclick={() => app.step()}
     />
   </header>

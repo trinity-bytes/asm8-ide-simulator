@@ -52,6 +52,19 @@ export class AppController {
     this.session = new SessionState(deps.runner);
     this.session.speed = this.settings.value.defaultSpeed;
     this.keymap = new Keymap(() => this.commands);
+    this.workspace.onRenamed = (from, to) => this.session.renamePath(from, to);
+    this.workspace.beforeSwitch = async (dirty) => {
+      const names = dirty.map((t) => t.title).join(', ');
+      const choice = await this.ui.confirm({
+        title: dirty.length === 1 ? `Save changes to ${names}?` : `Save changes to ${dirty.length} files?`,
+        body: `${dirty.length === 1 ? 'It has' : `${names} have`} unsaved changes that will be lost if you switch workspace without saving.`,
+        confirm: 'Save',
+        alternate: "Don't save",
+      });
+      if (choice === 'cancel') return false;
+      if (choice === 'confirm') return (await this.workspace.saveAll()) === dirty.length;
+      return true;
+    };
   }
 
   static provide(app: AppController): void {
@@ -68,7 +81,7 @@ export class AppController {
 
   /** Assembly of the active file, recomputed as the user types (cheap: programs are ≤ 256 bytes). */
   readonly activeAssembly: Assembly | null = $derived.by(() => {
-    const tab = this.workspace.activeFile;
+    const tab = this.workspace.currentFile;
     return tab ? assemble(tab.text) : null;
   });
 
@@ -118,7 +131,7 @@ export class AppController {
   // ---------- run ----------
 
   private withActive(fn: (path: string, source: string) => void): void {
-    const tab = this.workspace.activeFile;
+    const tab = this.workspace.currentFile;
     if (tab) fn(tab.key, tab.text);
     else if (this.session.program) fn(this.session.program.path, this.session.program.source);
     else this.ui.toast('Open an .asm file to run it.');
@@ -149,8 +162,7 @@ export class AppController {
   }
 
   restart(): void {
-    this.session.stop();
-    this.run();
+    this.withActive((p, s) => this.session.restart(p, s));
   }
 
   setSpeed(speed: (typeof SPEEDS)[number]): void {

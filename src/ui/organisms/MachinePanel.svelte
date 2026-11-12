@@ -28,7 +28,14 @@
   const base = $derived(app.settings.value.numberBase);
   const markChanges = $derived(app.settings.value.markChanges);
   const snap = $derived(s.snapshot);
-  const mem = $derived(snap?.memory ?? new Uint8Array(MEMORY_SIZE));
+  // Before the first run, preview where the current program will land in memory.
+  const mem = $derived.by(() => {
+    if (snap) return snap.memory;
+    const preview = new Uint8Array(MEMORY_SIZE);
+    const code = app.activeAssembly?.ok ? app.activeAssembly.code : [];
+    preview.set(code.slice(0, MEMORY_SIZE));
+    return preview;
+  });
   const regs = $derived(
     snap?.registers ?? { gpr: [0, 0, 0, 0], sp: MAX_SP, ip: 0, zero: false, carry: false, fault: false },
   );
