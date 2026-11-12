@@ -33,6 +33,8 @@ export class RunLoop {
   private state: RunState = 'empty';
   private speed: Speed = 4;
   private handle: unknown = null;
+  /** Mode of the scheduled tick; kept when a speed change reschedules it before it runs. */
+  private pendingMode: 'fresh' | 'after-input' | 'resume' = 'resume';
   private sentWrites = 0;
   private lastSnapshotAt = 0;
   /** The state to return to after IN receives input. */
@@ -57,10 +59,13 @@ export class RunLoop {
         break;
       case 'reset':
         this.stopTimer();
-        this.beforeReset = {
-          machine: this.machine.capture(),
-          state: this.state === 'running' || this.state === 'waiting' ? 'paused' : this.state,
-        };
+        this.beforeReset =
+          command.keepUndo === false
+            ? null
+            : {
+                machine: this.machine.capture(),
+                state: this.state === 'running' || this.state === 'waiting' ? 'paused' : this.state,
+              };
         this.machine.reset();
         this.debugger.resetHits();
         this.sentWrites = 0;
@@ -83,8 +88,9 @@ export class RunLoop {
       case 'speed':
         this.speed = command.speed;
         if (this.state === 'running') {
+          const mode = this.pendingMode;
           this.stopTimer();
-          this.schedule(0);
+          this.schedule(0, mode);
         }
         break;
       case 'pause':
@@ -160,8 +166,10 @@ export class RunLoop {
   }
 
   private schedule(ms: number, mode: 'fresh' | 'after-input' | 'resume' = 'resume'): void {
+    this.pendingMode = mode;
     this.handle = this.timer.set(() => {
       this.handle = null;
+      this.pendingMode = 'resume';
       this.tick(mode);
     }, ms);
   }
@@ -245,6 +253,7 @@ export class RunLoop {
       state: this.state,
       snapshot: this.machine.snapshot(),
       output: this.machine.takeOutput(),
+      ...((dropped) => (dropped ? { outputDropped: dropped } : {}))(this.machine.takeDropped()),
       writes: fresh > 0 ? all.slice(all.length - fresh) : [],
       ...(stop ? { stop } : {}),
       ...(restarted ? { restarted } : {}),

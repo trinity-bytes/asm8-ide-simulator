@@ -15,15 +15,15 @@ export type ConsoleKind = 'asm' | 'run' | 'out' | 'cpu' | 'err' | 'warn' | 'in' 
 export interface ConsoleEntry {
   readonly id: number;
   readonly kind: ConsoleKind;
-  text: string;
+  readonly text: string;
   /** Raw bytes for program output (Hex view). */
-  bytes?: number[];
+  readonly bytes?: readonly number[];
   /** Right-aligned detail: time or a count. */
-  meta?: string;
+  readonly meta?: string;
   /** Source line to reveal when the entry is clicked. */
   readonly line?: number;
   /** A tty line still receiving output. */
-  open?: boolean;
+  readonly open?: boolean;
 }
 
 export interface LoadedProgram {
@@ -33,6 +33,8 @@ export interface LoadedProgram {
 }
 
 const REGISTER_KEYS = ['A', 'B', 'C', 'D', 'IP', 'SP'] as const;
+/** Characters per console line before program output wraps into the next entry. */
+export const MAX_LINE = 4096;
 export type RegisterKey = (typeof REGISTER_KEYS)[number];
 
 const clock = () => {
@@ -55,7 +57,7 @@ export class SessionState {
   program = $state.raw<LoadedProgram | null>(null);
   speed = $state<Speed>(4);
   lastStop = $state.raw<StopReason | null>(null);
-  console = $state<ConsoleEntry[]>([]);
+  console = $state.raw<ConsoleEntry[]>([]);
   writes = $state.raw<MemoryWrite[]>([]);
   /** Step at which each register last changed. */
   changedAt = $state<Record<RegisterKey, number>>({ A: 0, B: 0, C: 0, D: 0, IP: 0, SP: 0 });
@@ -106,37 +108,63 @@ export class SessionState {
     text: string,
     extra: Partial<Omit<ConsoleEntry, 'id' | 'kind' | 'text'>> = {},
   ): void {
-    this.closeTty();
-    this.console.push({ id: this.nextId++, kind, text, ...extra });
-    this.trimConsole();
+    const next = this.closedTty();
+    next.push({ id: this.nextId++, kind, text, ...extra });
+    this.console = this.trimmed(next);
   }
 
-  private trimConsole(): void {
-    const over = this.console.length - this.scrollback;
-    if (over > 0) this.console.splice(0, over);
+  /** Keeps the newest `scrollback` lines. */
+  private trimmed(list: ConsoleEntry[]): ConsoleEntry[] {
+    return list.length > this.scrollback ? list.slice(list.length - this.scrollback) : list;
   }
 
-  private closeTty(): void {
-    const last = this.console[this.console.length - 1];
-    if (last?.open) last.open = false;
+  /** Copy of the console with the live tty line closed (entries are immutable). */
+  private closedTty(): ConsoleEntry[] {
+    const list = this.console.slice();
+    const last = list[list.length - 1];
+    if (last?.open) list[list.length - 1] = { ...last, open: false };
+    return list;
   }
 
+  /**
+   * Appends program output in one batch. At Max speed one update can carry thousands of lines, so
+   * this builds plain objects and assigns the console once (never mutates entries in place).
+   */
   private appendOutput(bytes: readonly number[]): void {
+    const list = this.console.slice();
+    const lastEntry = list[list.length - 1];
+    let current: { text: string[]; bytes: number[] } | null = null;
+    let currentId = 0;
+    if (lastEntry?.open) {
+      list.pop();
+      current = { text: [lastEntry.text], bytes: lastEntry.bytes ? lastEntry.bytes.slice() : [] };
+      currentId = lastEntry.id;
+    }
+    const flush = (open: boolean) => {
+      if (!current) return;
+      list.push({ id: currentId, kind: 'tty', text: current.text.join(''), bytes: current.bytes, open });
+      current = null;
+    };
     for (const b of bytes) {
-      let last = this.console[this.console.length - 1];
-      if (!last?.open) {
-        last = { id: this.nextId++, kind: 'tty', text: '', bytes: [], open: true };
-        this.console.push(last);
-        last = this.console[this.console.length - 1]!;
-      }
       if (b === 10) {
-        last.open = false;
+        if (!current) {
+          current = { text: [], bytes: [] };
+          currentId = this.nextId++;
+        }
+        flush(false);
         continue;
       }
-      last.bytes!.push(b);
-      last.text += b >= 32 && b < 127 ? String.fromCharCode(b) : b === 9 ? '\t' : '·';
+      if (!current) {
+        current = { text: [], bytes: [] };
+        currentId = this.nextId++;
+      }
+      current.bytes.push(b);
+      current.text.push(b >= 32 && b < 127 ? String.fromCharCode(b) : b === 9 ? '\t' : '·');
+      // Very long lines wrap into a new entry so one endless line cannot grow without bound.
+      if (current.bytes.length >= MAX_LINE) flush(false);
     }
-    this.trimConsole();
+    flush(true);
+    this.console = this.trimmed(list);
   }
 
   clearConsole(): void {
@@ -167,7 +195,9 @@ export class SessionState {
     }
     this.program = { path, source, assembly };
     this.writes = [];
-    this.runner.send({ type: 'load', assembly, breakpoints: this.breakpointsFor(path) });
+    this.runner.send({ type: 'load', assembly, breakpoints: $state.snapshot(this.breakpointsFor(path)) });
+    // Optimistic: commands sent before the runner's reply must see the program as loaded.
+    this.state = 'ready';
     return true;
   }
 
@@ -192,6 +222,7 @@ export class SessionState {
     if (!this.ensureLoaded(path, source)) return;
     this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
     this.runner.send({ type: 'run', speed: this.speed });
+    this.state = 'running';
   }
 
   pause(): void {
@@ -219,7 +250,26 @@ export class SessionState {
   /** Stop = reset without undo (Run and debug "Stop"). */
   stop(): void {
     if (this.state === 'empty') return;
-    this.runner.send({ type: 'reset' });
+    this.undoAvailable = false;
+    this.runner.send({ type: 'reset', keepUndo: false });
+  }
+
+  /** Reload the program from scratch and run it, even while a run is in progress. */
+  restart(path: string, source: string): void {
+    this.undoAvailable = false;
+    // `load` stops any running clock in the runner before anything else happens.
+    if (!this.load(path, source)) return;
+    this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
+    this.runner.send({ type: 'run', speed: this.speed });
+  }
+
+  /** A file was renamed: breakpoints and the loaded program follow it. */
+  renamePath(from: string, to: string): void {
+    const move = (p: string) => (p === from || p.startsWith(from + '/') ? to + p.slice(from.length) : p);
+    const next: Record<string, BreakpointSpec[]> = {};
+    for (const [p, list] of Object.entries(this.breakpoints)) next[move(p)] = list;
+    this.breakpoints = next;
+    if (this.program) this.program = { ...this.program, path: move(this.program.path) };
   }
 
   setSpeed(speed: Speed): void {
@@ -285,6 +335,11 @@ export class SessionState {
       for (const k of changed) this.changedAt[k] = next.steps;
     }
 
+    if (e.outputDropped)
+      this.log(
+        'warn',
+        `${e.outputDropped.toLocaleString('en')} bytes of output skipped: the program prints faster than the console can show.`,
+      );
     if (e.output.length) this.appendOutput(e.output);
     this.snapshot = next;
     this.state = e.state;
@@ -321,7 +376,7 @@ export class SessionState {
         );
         break;
       case 'fault':
-        this.log('err', `${stop.message} at ${ip}${lineNote('')}`, {
+        this.log('err', `${stop.message} at 0x${hex(s.faultAddress ?? s.registers.ip)}${lineNote('')}`, {
           meta: clock(),
           ...(s.line !== undefined ? { line: s.line } : {}),
         });

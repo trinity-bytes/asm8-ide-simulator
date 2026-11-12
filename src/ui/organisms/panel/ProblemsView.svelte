@@ -25,7 +25,7 @@
         <li class={d.severity}>
           <Icon name={d.severity === 'error' ? 'error' : 'warning'} size={14} />
           <button type="button" class="msg" onclick={() => app.editor?.gotoLine(d.line)}>{d.message}</button>
-          <span class="where mono">{file.title}:{d.line + 1}</span>
+          <span class="where mono" title="{file.title}:{d.line + 1}">Ln {d.line + 1}</span>
           {#if d.fix}
             <button
               type="button"
@@ -72,15 +72,19 @@
   }
   .msg {
     flex: 1;
-    min-width: 0;
+    min-width: 120px;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .where {
+    flex: none;
     color: var(--color-muted);
     font-size: 12px;
+  }
+  .fix {
+    flex: none;
   }
   .fix {
     font-size: 12px;

@@ -31,10 +31,14 @@ export interface MachineSnapshot {
   /** Source line of the instruction at IP, if IP points at one. */
   readonly line: number | undefined;
   readonly fault: string | undefined;
+  /** Address of the instruction that faulted (IP may already point past it, as in the legacy CPU). */
+  readonly faultAddress: number | undefined;
   readonly pendingInput: number;
 }
 
 export const MAX_WRITES_KEPT = 10_000;
+/** Console bytes kept between two `takeOutput` calls; older ones are counted as dropped. */
+export const MAX_OUTPUT_PENDING = 16 * 1024;
 
 /** Everything needed to put the machine back exactly as it was (Reset → Undo). */
 export interface MachineState {
@@ -49,6 +53,7 @@ export interface MachineState {
   readonly steps: number;
   readonly status: MachineStatus;
   readonly faultMessage: string | undefined;
+  readonly faultAt: number | undefined;
   readonly input: readonly number[];
   readonly writes: readonly MemoryWrite[];
   readonly totalWrites: number;
@@ -65,17 +70,26 @@ export class Machine {
   private input: number[] = [];
   private outputListener: ((bytes: number[]) => void) | null = null;
   private outputBuffer: number[] = [];
+  private outputDropped = 0;
   private _writes: MemoryWrite[] = [];
   private _totalWrites = 0;
   private _steps = 0;
   private _status: MachineStatus = 'empty';
   private _fault: string | undefined;
+  private _faultAt: number | undefined;
   private currentLine: number | undefined;
 
   constructor() {
     this.cpu = new Cpu(this.memory, {
       read: () => this.input.shift(),
-      write: (byte) => this.outputBuffer.push(byte),
+      write: (byte) => {
+        this.outputBuffer.push(byte);
+        if (this.outputBuffer.length > MAX_OUTPUT_PENDING * 2) {
+          const drop = this.outputBuffer.length - MAX_OUTPUT_PENDING;
+          this.outputBuffer.splice(0, drop);
+          this.outputDropped += drop;
+        }
+      },
     });
     this.memory.onStore = (address, previous, value) => {
       this._writes.push({ step: this._steps + 1, address, previous, value, line: this.currentLine });
@@ -120,10 +134,12 @@ export class Machine {
     if (this.program) this.memory.loadProgram(this.program.code);
     this.input = [];
     this.outputBuffer = [];
+    this.outputDropped = 0;
     this._writes = [];
     this._totalWrites = 0;
     this._steps = 0;
     this._fault = undefined;
+    this._faultAt = undefined;
     this._status = this.program ? 'ready' : 'empty';
   }
 
@@ -133,11 +149,22 @@ export class Machine {
     if (this._status === 'waiting') this._status = 'ready';
   }
 
-  /** Console output produced since the last call. */
+  /** Console output produced since the last call (at most MAX_OUTPUT_PENDING bytes). */
   takeOutput(): number[] {
-    const out = this.outputBuffer;
+    let out = this.outputBuffer;
+    if (out.length > MAX_OUTPUT_PENDING) {
+      this.outputDropped += out.length - MAX_OUTPUT_PENDING;
+      out = out.slice(out.length - MAX_OUTPUT_PENDING);
+    }
     this.outputBuffer = [];
     return out;
+  }
+
+  /** Bytes dropped by `takeOutput` since the last call (output faster than anyone can read). */
+  takeDropped(): number {
+    const n = this.outputDropped;
+    this.outputDropped = 0;
+    return n;
   }
 
   step(): StepResult {
@@ -146,7 +173,8 @@ export class Machine {
     if (this._status === 'fault')
       return { kind: 'fault', message: this._fault ?? 'FAULT. Reset to continue.' };
 
-    this.currentLine = this.lineAt(this.cpu.ip);
+    const at = this.cpu.ip;
+    this.currentLine = this.lineAt(at);
     try {
       const outcome = this.cpu.step();
       if (outcome === 'waiting') {
@@ -164,6 +192,7 @@ export class Machine {
       if (!(e instanceof MachineFault)) throw e;
       this._status = 'fault';
       this._fault = e.message;
+      this._faultAt = at;
       return { kind: 'fault', message: e.message };
     }
   }
@@ -188,6 +217,7 @@ export class Machine {
       steps: this._steps,
       status: this._status,
       faultMessage: this._fault,
+      faultAt: this._faultAt,
       input: [...this.input],
       writes: [...this._writes],
       totalWrites: this._totalWrites,
@@ -207,6 +237,7 @@ export class Machine {
     this._steps = state.steps;
     this._status = state.status;
     this._fault = state.faultMessage;
+    this._faultAt = state.faultAt;
     this.input = [...state.input];
     this._writes = [...state.writes];
     this._totalWrites = state.totalWrites;
@@ -219,8 +250,11 @@ export class Machine {
       memory: this.memory.data.slice(),
       lastAccess: this.memory.lastAccess,
       steps: this._steps,
-      line: this.lineAt(this.cpu.ip),
+      line: this.lineAt(
+        this._status === 'fault' && this._faultAt !== undefined ? this._faultAt : this.cpu.ip,
+      ),
       fault: this._fault,
+      faultAddress: this._faultAt,
       pendingInput: this.input.length,
     };
   }

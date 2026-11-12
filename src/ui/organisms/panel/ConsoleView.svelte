@@ -20,6 +20,15 @@
 
   const waiting = $derived(s.state === 'waiting');
 
+  // Only the newest lines are in the DOM; older ones (up to the scrollback) load on request.
+  // While a program runs fast, fewer rows keep each update cheap; all of them come back on pause.
+  const PAGE = 1000;
+  const LIVE = 200;
+  let shown = $state(PAGE);
+  const limit = $derived(s.running && s.speed === 'max' ? Math.min(shown, LIVE) : shown);
+  const visible = $derived(s.console.length > limit ? s.console.slice(s.console.length - limit) : s.console);
+  const hidden = $derived(s.console.length - visible.length);
+
   $effect(() => {
     void s.console.length;
     void s.console.at(-1)?.text;
@@ -44,7 +53,7 @@
     let ch: string | null = null;
     if (e.key === 'Enter') ch = '\n';
     else if (e.key === 'Backspace') ch = '\b';
-    else if (e.key === 'Tab') ch = '\t';
+    // Tab is left alone so keyboard users can move on (no keyboard trap).
     else if (e.key === 'Escape') ch = '\x1b';
     else if (e.key.length === 1) ch = e.key;
     if (ch === null) return;
@@ -77,7 +86,12 @@
     aria-label="Console output"
     tabindex="0"
   >
-    {#each s.console as e (e.id)}
+    {#if hidden > 0}
+      <button type="button" class="earlier" onclick={() => (shown += PAGE)}>
+        Show {Math.min(PAGE, hidden).toLocaleString('en')} earlier lines ({hidden.toLocaleString('en')} hidden)
+      </button>
+    {/if}
+    {#each visible as e (e.id)}
       <div class="entry {e.kind}" class:strong={e.kind === 'asm' && /^\d/.test(e.text)}>
         <span class="kind mono">{e.kind}</span>
         {#if e.line !== undefined}
@@ -219,6 +233,11 @@
       opacity: 0;
     }
   }
+  .earlier {
+    margin: 0 0 6px 60px;
+    color: var(--color-accent);
+    font-size: 12px;
+  }
   .empty {
     margin: 4px 0;
     color: var(--color-muted);
@@ -248,6 +267,7 @@
   }
   .input:focus-within {
     border-top-color: var(--color-accent);
+    box-shadow: inset 0 1px var(--color-accent);
   }
   .waiting .kind {
     color: var(--color-accent);

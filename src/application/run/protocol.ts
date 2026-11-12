@@ -23,7 +23,8 @@ export type RunnerCommand =
   | { readonly type: 'step' }
   | { readonly type: 'stepOver' }
   | { readonly type: 'stepOut' }
-  | { readonly type: 'reset' }
+  /** `keepUndo: false` (Stop) also forgets the state an Undo would bring back. */
+  | { readonly type: 'reset'; readonly keepUndo?: boolean }
   /** Puts back the state from just before the last reset (Undo in the reset toast). */
   | { readonly type: 'undoReset' }
   | { readonly type: 'speed'; readonly speed: Speed }
@@ -38,6 +39,8 @@ export interface RunnerUpdate {
   readonly snapshot: MachineSnapshot;
   /** Bytes written by OUT since the previous update. */
   readonly output: readonly number[];
+  /** OUT bytes skipped because the program printed faster than the console can show. */
+  readonly outputDropped?: number;
   /** Memory writes since the previous update (oldest first). */
   readonly writes: readonly MemoryWrite[];
   /** Why the run stopped, when this update ends a run or a step. */

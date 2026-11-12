@@ -21,7 +21,7 @@
     if (s.state === 'paused' || s.state === 'waiting') return { label: 'Continue', icon: 'play' as const };
     return { label: 'Run', icon: 'play' as const };
   });
-  const canRun = $derived(app.workspace.activeFile !== null || s.program !== null);
+  const canRun = $derived(app.workspace.currentFile !== null || s.program !== null);
   const canReset = $derived(s.state !== 'empty' && s.state !== 'ready');
 
   function openSpeedMenu(e: MouseEvent) {

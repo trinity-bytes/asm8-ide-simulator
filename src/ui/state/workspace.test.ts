@@ -76,4 +76,40 @@ describe('WorkspaceState', () => {
     ws.toggleFolder('lab');
     expect(ws.visibleEntries.map((e) => e.path)).toEqual(['lab', 'z.asm']);
   });
+
+  it('save refuses to overwrite a newer copy on disk until Keep mine is chosen', async () => {
+    const { fs, ws } = await setup({ 'a.asm': 'HLT' });
+    ws.updateText(ws.activeId!, 'mine');
+    fs.touch('a.asm', 'theirs');
+    expect(await ws.save()).toBe(false);
+    expect(ws.activeFile?.changedOnDisk).toBe(true);
+    expect((await fs.read('a.asm')).text).toBe('theirs');
+    ws.keepMine(ws.activeId!);
+    expect(await ws.save()).toBe(true);
+    expect((await fs.read('a.asm')).text).toBe('mine');
+  });
+
+  it('asks before switching workspace with unsaved changes and stays on cancel', async () => {
+    const { ws } = await setup({ 'a.asm': 'HLT' });
+    ws.updateText(ws.activeId!, 'edited');
+    ws.beforeSwitch = async () => false;
+    const other = new MemoryFileSystem('folder', 'other', { 'b.asm': '' });
+    expect(await ws.use(other)).toBe(false);
+    expect(ws.fs?.name).toBe('lab');
+    expect(ws.activeFile?.text).toBe('edited');
+  });
+
+  it('tells listeners about renames so breakpoints can follow', async () => {
+    const { ws } = await setup({ 'a.asm': 'HLT' });
+    const seen: string[] = [];
+    ws.onRenamed = (from, to) => seen.push(`${from}→${to}`);
+    await ws.rename('a.asm', 'b.asm');
+    expect(seen).toEqual(['a.asm→b.asm']);
+  });
+
+  it('allows a case-only rename', async () => {
+    const { ws } = await setup({ 'a.asm': 'HLT' });
+    expect(await ws.rename('a.asm', 'A.asm')).toBeNull();
+    expect(ws.entries.map((e) => e.path)).toEqual(['A.asm']);
+  });
 });

@@ -87,7 +87,8 @@
   {#if s.state === 'fault' && s.program?.path === tab.key && s.snapshot?.fault && settings.pauseOnFault}
     <div class="banner error" role="alert">
       <span
-        >{s.snapshot.fault} at 0x{hex(s.snapshot.registers.ip)}{s.snapshot.line !== undefined
+        >{s.snapshot.fault} at 0x{hex(s.snapshot.faultAddress ?? s.snapshot.registers.ip)}{s.snapshot.line !==
+        undefined
           ? `, line ${s.snapshot.line + 1}`
           : ''}. Reset to run again.</span
       >

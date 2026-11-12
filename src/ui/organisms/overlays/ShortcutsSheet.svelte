@@ -18,6 +18,7 @@
     { title: 'Toggle comment', keys: 'Ctrl+/' },
     { title: 'Show quick fix', keys: 'Ctrl+.' },
     { title: 'Suggest', keys: 'Ctrl+Space' },
+    { title: 'Leave the editor', keys: 'Esc, then Tab' },
   ];
 </script>
 

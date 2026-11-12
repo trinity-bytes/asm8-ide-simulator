@@ -10,17 +10,12 @@
   let { name, value, second, note, changed = false, onclick }: Props = $props();
 </script>
 
-<button
-  type="button"
-  class="reg"
-  class:changed
-  {onclick}
-  aria-label="{name} {value}{changed ? ', changed' : ''}"
->
+<button type="button" class="reg" class:changed {onclick}>
   <span class="name mono">{name}</span>
   <span class="value mono">{value}</span>
   <span class="second mono">{second}</span>
   <span class="note mono">{note}</span>
+  {#if changed}<span class="sr-only">changed</span>{/if}
 </button>
 
 <style>

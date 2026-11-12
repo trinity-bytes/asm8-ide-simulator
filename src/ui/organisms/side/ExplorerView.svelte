@@ -114,7 +114,7 @@
     <div class="empty">
       <p>No folder open. Asm8 edits the .asm files on your disk directly; nothing is uploaded.</p>
       <Button variant="primary" block onclick={() => app.openFolder()}>
-        {ws.provider.canOpenFolders ? 'Open folder' : 'Open browser workspace'}
+        {app.canOpenFolders ? 'Open folder' : 'Open browser workspace'}
       </Button>
       <Button block onclick={() => app.newFile()}>New file</Button>
     </div>
@@ -170,7 +170,7 @@
       {#each labels as [name, address] (name)}
         <li>
           <button type="button" class="item" onclick={() => app.editor?.gotoLine(labelLine(name))}>
-            <span class="mono">{name}</span>
+            <span class="mono label" title={name}>{name}</span>
             <span class="mono muted">0x{hex(address)}</span>
           </button>
         </li>
@@ -261,6 +261,13 @@
   }
   .muted {
     font-size: 11px;
+    flex: none;
+  }
+  .label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .code {
     overflow: hidden;

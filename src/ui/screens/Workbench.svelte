@@ -19,7 +19,10 @@
   const layout = $derived(ui.layout);
   const touch = $derived(layout !== 'desktop');
   const portrait = $derived(layout === 'tablet-portrait');
-  const showMachine = $derived(layout === 'desktop' && app.workspace.active !== null);
+  // Settings takes the full width (Figma "Settings"); files and references keep the Machine panel.
+  const showMachine = $derived(
+    layout === 'desktop' && app.workspace.active !== null && app.workspace.active.kind !== 'settings',
+  );
 
   // Panel height is resizable (drag the top edge), remembered per session.
   let panelHeight = $state(272);
@@ -74,15 +77,7 @@
     {#if layout === 'tablet-landscape'}
       {#if ui.machineDrawer}
         <div class="drawer" role="complementary" aria-label="Machine drawer">
-          <div class="drawer-close">
-            <IconButton
-              icon="close"
-              label="Hide machine"
-              size="touch"
-              onclick={() => (ui.machineDrawer = false)}
-            />
-          </div>
-          <MachinePanel />
+          <MachinePanel onclose={() => (ui.machineDrawer = false)} />
         </div>
       {:else}
         <button type="button" class="drawer-tab" onclick={() => (ui.machineDrawer = true)}>Machine</button>
@@ -175,12 +170,6 @@
     display: flex;
     flex-direction: column;
     background: var(--color-ground);
-  }
-  .drawer-close {
-    position: absolute;
-    top: 4px;
-    right: 8px;
-    z-index: 2;
   }
   .drawer-tab {
     position: absolute;

@@ -22,9 +22,7 @@
         <ul>
           <li>
             <button type="button" onclick={() => app.openFolder()}
-              ><Icon name="folder" />{ws.provider.canOpenFolders
-                ? 'Open folder…'
-                : 'Browser workspace'}</button
+              ><Icon name="folder" />{app.canOpenFolders ? 'Open folder…' : 'Browser workspace'}</button
             ><Kbd keys="Ctrl+K O" />
           </li>
           <li>

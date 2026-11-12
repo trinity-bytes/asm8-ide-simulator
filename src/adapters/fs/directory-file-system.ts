@@ -137,11 +137,46 @@ export class DirectoryFileSystem implements FileSystemPort {
     await writable.close();
   }
 
+  /** Copies a whole folder handle-to-handle: no hidden-name filter, no entry cap. Returns files copied. */
+  private async copyTree(src: FileSystemDirectoryHandle, dest: FileSystemDirectoryHandle): Promise<number> {
+    let copied = 0;
+    for await (const [name, child] of src as unknown as AsyncIterable<[string, FileSystemHandle]>) {
+      if (child.kind === 'directory') {
+        const sub = await dest.getDirectoryHandle(name, { create: true });
+        copied += await this.copyTree(child as FileSystemDirectoryHandle, sub);
+      } else {
+        const blob = await (child as FileSystemFileHandle).getFile();
+        const writable = await (await dest.getFileHandle(name, { create: true })).createWritable();
+        await writable.write(blob);
+        await writable.close();
+        copied++;
+      }
+    }
+    return copied;
+  }
+
+  private async countFiles(dir: FileSystemDirectoryHandle): Promise<number> {
+    let n = 0;
+    for await (const [, child] of dir as unknown as AsyncIterable<[string, FileSystemHandle]>) {
+      n += child.kind === 'directory' ? await this.countFiles(child as FileSystemDirectoryHandle) : 1;
+    }
+    return n;
+  }
+
   /**
-   * Uses the native `move()` when the browser has it; otherwise copies byte for byte and only then
-   * deletes the original, so a failure part-way leaves a duplicate, never a loss.
+   * Uses the native `move()` when the browser has it; otherwise copies byte for byte, checks that
+   * every file arrived, and only then deletes the original — a failure leaves a duplicate, never a
+   * loss. A case-only rename (`a.asm` → `A.asm`) goes through a temporary name, because on
+   * case-insensitive disks both names are the same file.
    */
   async rename(from: string, to: string): Promise<void> {
+    if (from === to) return;
+    if (from.toLowerCase() === to.toLowerCase()) {
+      const temp = `${dirname(from) ? dirname(from) + '/' : ''}.asm8-rename-${Date.now()}`;
+      await this.rename(from, temp);
+      await this.rename(temp, to);
+      return;
+    }
     try {
       if (await this.exists(to)) throw new FileSystemError(`"${basename(to)}" already exists`, 'exists');
       const parent = await this.dir(dirname(from));
@@ -160,12 +195,14 @@ export class DirectoryFileSystem implements FileSystemPort {
       if (handle.kind === 'file') {
         await this.copyFile(from, to);
       } else {
-        const all = (await this.list()).filter((e) => e.path.startsWith(from + '/'));
-        await this.dir(to, true);
-        for (const e of all) {
-          const target = to + e.path.slice(from.length);
-          if (e.kind === 'directory') await this.dir(target, true);
-          else await this.copyFile(e.path, target);
+        const source = handle as FileSystemDirectoryHandle;
+        const target = await this.dir(to, true);
+        const copied = await this.copyTree(source, target);
+        if (copied !== (await this.countFiles(source))) {
+          throw new FileSystemError(
+            `Could not copy every file of "${basename(from)}"; nothing was deleted.`,
+            'unknown',
+          );
         }
       }
       await parent.removeEntry(basename(from), { recursive: true });

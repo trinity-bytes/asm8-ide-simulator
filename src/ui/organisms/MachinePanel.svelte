@@ -11,6 +11,7 @@
     type NumberBase,
   } from '@core/index';
   import Button from '../atoms/Button.svelte';
+  import IconButton from '../atoms/IconButton.svelte';
   import Segmented from '../atoms/Segmented.svelte';
   import FlagCell from '../molecules/FlagCell.svelte';
   import RegisterRow from '../molecules/RegisterRow.svelte';
@@ -20,15 +21,24 @@
   interface Props {
     /** Inside a tab (tablet portrait, phone): no outer title. */
     embedded?: boolean;
+    /** Drawer mode (tablet landscape): shows a close button in the header. */
+    onclose?: () => void;
   }
-  let { embedded = false }: Props = $props();
+  let { embedded = false, onclose }: Props = $props();
 
   const app = AppController.use();
   const s = app.session;
   const base = $derived(app.settings.value.numberBase);
   const markChanges = $derived(app.settings.value.markChanges);
   const snap = $derived(s.snapshot);
-  const mem = $derived(snap?.memory ?? new Uint8Array(MEMORY_SIZE));
+  // Before the first run, preview where the current program will land in memory.
+  const mem = $derived.by(() => {
+    if (snap) return snap.memory;
+    const preview = new Uint8Array(MEMORY_SIZE);
+    const code = app.activeAssembly?.ok ? app.activeAssembly.code : [];
+    preview.set(code.slice(0, MEMORY_SIZE));
+    return preview;
+  });
   const regs = $derived(
     snap?.registers ?? { gpr: [0, 0, 0, 0], sp: MAX_SP, ip: 0, zero: false, carry: false, fault: false },
   );
@@ -93,6 +103,13 @@
     return c.join(' ');
   }
 
+  /** Hex byte, or the character on the display rows (· when empty). */
+  function cellText(i: number): string {
+    const v = mem[i] ?? 0;
+    if (i >= DISPLAY_START) return v >= 32 && v < 127 ? String.fromCharCode(v) : v === 0 ? '·' : hex(v);
+    return hex(v);
+  }
+
   function select(i: number) {
     selected = selected === i ? null : i;
     editValue = `0x${hex(mem[i] ?? 0)}`;
@@ -135,6 +152,7 @@
       options={BASES}
       onchange={(v) => app.settings.set('numberBase', v)}
     />
+    {#if onclose}<IconButton icon="close" label="Hide machine" size="touch" onclick={onclose} />{/if}
   </header>
 
   <div class="card regs" role="group" aria-label="Registers">
@@ -201,17 +219,13 @@
               data-addr={i}
               class={cellClass(i)}
               tabindex={i === (selected ?? 0) ? 0 : -1}
-              aria-label="0x{hex(i)}: 0x{hex(mem[i] ?? 0)}{i === regs.ip ? ', IP' : ''}{i === regs.sp
+              aria-label="{cellText(i)}, address 0x{hex(i)}{i === regs.ip ? ', IP' : ''}{i === regs.sp
                 ? ', SP'
                 : ''}"
               onclick={() => select(i)}
               onkeydown={(e) => gridKey(e, i)}
             >
-              {i >= DISPLAY_START && (mem[i] ?? 0) >= 32 && (mem[i] ?? 0) < 127
-                ? String.fromCharCode(mem[i]!)
-                : i >= DISPLAY_START && !mem[i]
-                  ? '·'
-                  : hex(mem[i] ?? 0)}
+              {cellText(i)}
             </button>
           {/each}
         </div>
@@ -282,6 +296,7 @@
   .head {
     display: flex;
     align-items: center;
+    gap: 12px;
     justify-content: space-between;
     min-height: 30px;
   }
