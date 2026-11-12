@@ -7,11 +7,9 @@ test('phone: one region at a time, run and see the result in the console', async
   await page.goto('/');
   await page.getByRole('button', { name: 'Files' }).click();
   await page.getByRole('button', { name: 'Open browser workspace' }).click();
-  // The first visit seeds the browser workspace with hello.asm.
-  await page.getByRole('button', { name: /^hello\.asm/ }).click();
-  await expect(page.getByRole('heading', { level: 1 }).or(page.locator('.top strong'))).toContainText(
-    'hello.asm',
-  );
+  // The first visit seeds the browser workspace with hello.asm and shows the code.
+  await expect(page.locator('.top strong')).toHaveText('hello.asm');
+  await expect(page.locator('.cm-content')).toContainText('Simple example');
   await page.getByRole('button', { name: 'Run', exact: true }).click();
   await page.getByRole('button', { name: 'Console' }).click();
   await expect(page.getByRole('log', { name: 'Console output' })).toContainText('Run started');
