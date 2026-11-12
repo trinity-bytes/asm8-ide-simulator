@@ -46,14 +46,14 @@ Forecast total ≈ 8 750 authored lines, so every feature above ~400 lines is de
 | T3 | F3 | S4 S5 S6 | inline | done | 2bef74a |
 | T4 | F4 | S1 S2 | inline | done | 69f5cf8 |
 | T5 | F5 | S2 S5 | inline | done | ebc5e04 |
-| T6 | F6 | S1 S6 | inline | pending | |
-| T7 | F7 | S1 S2 | inline | pending | |
-| T8 | F8 | S1 | inline | pending | |
-| T9 | F9 | S1 | inline | in progress (ports + adapters) | 9aa5899 |
-| T10 | F10 | S1 | inline | pending | |
-| T11 | F11 | S1 | inline | pending | |
-| T12 | F12 | S1 | inline | pending | |
-| T13 | F13 | S1 | inline | pending | |
+| T6 | F6 | S1 S6 | inline | done | 5018331, f207b5f |
+| T7 | F7 | S1 S2 | inline | done | f207b5f |
+| T8 | F8 | S1 | inline | done | f207b5f |
+| T9 | F9 | S1 | inline | done | 9aa5899, 81fcd14 |
+| T10 | F10 | S1 | inline | done | f207b5f |
+| T11 | F11 | S1 | inline | done | a7ed550 |
+| T12 | F12 | S1 | inline | done | f207b5f, ec8ffed |
+| T13 | F13 | S1 | inline | done | fed5e2a … dc97f49 |
 | T14 | R1 | S3 | inline | pending | |
 
 Route note: every task starts inline. A writer is delegated only for parallel independent units (candidates: F3 ∥ F4, F6 ∥ F7) or the long-session backstop; the choice and its reason are recorded here per task.
@@ -75,3 +75,23 @@ Route note: every task starts inline. A writer is delegated only for parallel in
 - **L9 (2026-11-12, user):** "procede con la implementacion por tu cuenta, resultado esperado es tener todo imolementado segunnel stack y lanarquitecrua interna elegida y las interfaces en figma. quiero una buena arquitectura interna. al finalizar la implementacion ve probando y auditando el codigo en loop gasta que obtengas una app web que puedas considersr solida. usa las skills y herramiemtss que sean necesarias, confio en tu criterio para oas decisiones poeque no te podre dar feeedback por algunas horas hastabque termines."
 - **L10 (2026-11-12, user):** "una cosa mas y es que ao correr los test cuides de no llenar laemoria ram o sino se crashea la compu" → Vitest `pool: forks`, 2 workers; Playwright 1 worker, Chromium only; heavy commands run one at a time with `timeout`. Gotcha: never `pkill -f vitest` from a shell whose own command line contains "vitest" (it kills itself).
 - **L11 (decisions, T1–T5):** feature branches are fast-forwarded when they hold one commit. Core keeps legacy semantics proven by `tests/unit/parity.test.ts` (hello world 83 steps, 400 random programs compared step by step, 14 legacy error messages); intentional differences listed in `docs/parity.md` (SUB reg,SP fix chosen per L6 recommendation, NOT 0xFF wraps, duplicate labels detected, missing operands reported, all-line diagnostics). Speeds 1/4/16/64 Hz + Max. Runner = pure `RunLoop` (application) hosted by a Web Worker adapter or inline. File System Access and OPFS share one adapter (`DirectoryFileSystem`); rename uses native `move()` or a byte-exact copy before delete (no data loss on partial failure).
+- **L12 (UI decisions, T6–T12):** state containers are Svelte 5 rune classes in `src/ui/state` (`SessionState`, `WorkspaceState`, `SettingsState`, `UiState`) owned by `AppController`, the composition root wired in `App.svelte`; presentational atoms/molecules take props only. One `Workbench` screen covers desktop and both tablet layouts (rail + drawer in landscape, files sheet + Machine tab in portrait); `PhoneWorkbench` shows one region at a time. Run targets the last active file even while Settings or a reference tab is open. Settings hides the Machine panel (as in Figma). Phones always use the browser workspace (seeded with hello.asm). Ctrl+N/Ctrl+W cannot be captured in a browser tab, so New file is Alt+N and Close editor Alt+W. Compare (diff) stays disabled (backlog F1).
+- **L13 (audit loop, 2026-11-12):**
+
+| Round | Where | Issue | Severity | Fix |
+| --- | --- | --- | --- | --- |
+| e2e 1 | runner | Svelte proxies posted to the Worker (DataCloneError) | blocker | `$state.snapshot` before `postMessage` |
+| e2e 1 | themes | duplicate keys on theme swatches crashed Settings and the picker | blocker | index keys |
+| e2e 1 | errors | fault pointed at the next instruction | major | `faultAddress` in the snapshot |
+| e2e 1 | a11y | register/memory names did not contain visible text; button nested in a tab | major | visible-text names; tab close is not a nested control (Delete/Alt+W) |
+| review | files | folder rename fallback deleted hidden/uncounted files | blocker | copy the whole tree handle-to-handle, verify count before delete; case-only rename via temp name |
+| review | files | switching workspace dropped unsaved edits; Save overwrote newer disk copy | major | Save/Don't save/Cancel before switching; stat before save |
+| review | runtime | Restart did nothing while running; speed change before first tick paused the run; Stop broke Undo | major | single restart path; pending tick mode kept; `reset keepUndo:false` |
+| visual 1 | tablet | quick steps reloaded the program (state only changed on worker reply) | major | optimistic `ready`/`running` state |
+| visual 1 | desktop | memory empty before the first run; Run disabled on Settings | major | memory preview; `currentFile` |
+| break-ui | console | Max-speed output froze the tab | blocker | batched immutable output, 16 KiB cap per update, 200/1000-row window (worst frame 50 ms) |
+| break-ui | panels | long names hid problem messages and outline addresses | major | truncation, `Ln N` |
+| keyboard | console | Tab trapped in the console input | blocker | Tab moves focus |
+| final | all | — | — | 120 unit + 16 e2e (axe: 0 serious) pass, svelte-check 0, eslint 0 |
+
+- **L14 (minor findings left):** (1) JS bundle 640 kB (206 kB gzip), precached for offline; code-splitting CodeMirror would speed the first visit. (2) The Problems list keeps line order (errors and warnings interleaved). (3) Compare / diff view (backlog F1). (4) Files opened from the OS (installed app) are copied into the browser workspace instead of edited in place. (5) The 7.5 k-line UI commit `f207b5f` was not split into ~400-line slices (autonomous run).
