@@ -48,6 +48,7 @@ export class Machine {
   private outputListener: ((bytes: number[]) => void) | null = null;
   private outputBuffer: number[] = [];
   private _writes: MemoryWrite[] = [];
+  private _totalWrites = 0;
   private _steps = 0;
   private _status: MachineStatus = 'empty';
   private _fault: string | undefined;
@@ -60,6 +61,7 @@ export class Machine {
     });
     this.memory.onStore = (address, previous, value) => {
       this._writes.push({ step: this._steps + 1, address, previous, value, line: this.currentLine });
+      this._totalWrites++;
       if (this._writes.length > MAX_WRITES_KEPT)
         this._writes.splice(0, this._writes.length - MAX_WRITES_KEPT);
     };
@@ -73,6 +75,10 @@ export class Machine {
   }
   get writes(): readonly MemoryWrite[] {
     return this._writes;
+  }
+  /** Writes since load or reset, including ones dropped from `writes` (monotonic). */
+  get totalWrites(): number {
+    return this._totalWrites;
   }
   get assembly(): Assembly | null {
     return this.program;
@@ -97,6 +103,7 @@ export class Machine {
     this.input = [];
     this.outputBuffer = [];
     this._writes = [];
+    this._totalWrites = 0;
     this._steps = 0;
     this._fault = undefined;
     this._status = this.program ? 'ready' : 'empty';
