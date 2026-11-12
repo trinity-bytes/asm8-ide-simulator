@@ -45,6 +45,9 @@ export default ts.config(
   {
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // State containers replace collections immutably ($state.raw) and local Sets/Maps inside
+      // functions are temporaries; SvelteSet/SvelteMap would add reactivity nobody reads.
+      'svelte/prefer-svelte-reactivity': 'off',
     },
   },
 );

@@ -31,6 +31,8 @@ export interface MenuItemSpec {
   readonly shortcut?: string;
   readonly danger?: boolean;
   readonly disabled?: boolean;
+  /** Radio-style menus (speed): draws a check mark. */
+  readonly checked?: boolean;
   readonly run: () => void;
 }
 

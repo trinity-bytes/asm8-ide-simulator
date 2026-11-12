@@ -103,7 +103,8 @@ export class WorkspaceState {
     await this.use(restored.fs, restored.granted);
   }
 
-  async use(fs: FileSystemPort, granted = true): Promise<void> {
+  /** Switches workspace. `restore` reopens the tabs of its last session (or its first .asm file). */
+  async use(fs: FileSystemPort, granted = true, restore = true): Promise<void> {
     this.fs = fs;
     this.needsAccess = !granted;
     this.entries = [];
@@ -111,7 +112,7 @@ export class WorkspaceState {
     this.tabs = this.tabs.filter((t) => t.kind !== 'file');
     if (granted) {
       await this.refresh();
-      await this.restoreTabs();
+      if (restore) await this.restoreTabs();
     }
     void this.provider.rememberCurrent(fs);
     this.recents = await this.provider.recent().catch(() => this.recents);
@@ -130,7 +131,7 @@ export class WorkspaceState {
   }
 
   async openExamples(file?: string): Promise<void> {
-    if (this.fs?.kind !== 'examples') await this.use(this.provider.examples());
+    if (this.fs?.kind !== 'examples') await this.use(this.provider.examples(), true, !file);
     if (file) await this.openFile(file);
   }
 
@@ -182,7 +183,7 @@ export class WorkspaceState {
 
   private async restoreTabs(): Promise<void> {
     if (!this.fs) return;
-    let saved: { files: string[]; active: string | null } | null = null;
+    let saved: { files: string[]; active: string | null } | null;
     try {
       saved = JSON.parse(localStorage.getItem(`${SESSION_KEY}:${this.fs.kind}:${this.fs.name}`) ?? 'null');
     } catch {
