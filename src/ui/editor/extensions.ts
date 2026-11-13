@@ -1,6 +1,6 @@
 import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { linter, lintGutter, type Diagnostic as CmDiagnostic } from '@codemirror/lint';
-import { RangeSet, StateEffect, StateField, type Extension, type Text } from '@codemirror/state';
+import { EditorState, RangeSet, StateEffect, StateField, type Extension, type Text } from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -19,6 +19,8 @@ import {
   type NumberBase,
   type Registers,
 } from '@core/index';
+import { i18n, t, type MessageKey } from '../i18n/i18n.svelte';
+import { instructionText } from '../i18n/instruction-docs.es';
 
 // ---------------------------------------------------------------------------
 // External data pushed into the editor by the Svelte component.
@@ -169,6 +171,41 @@ export const runMarker = EditorView.decorations.compute([dataField, 'doc'], (sta
 });
 
 // ---------------------------------------------------------------------------
+// CodeMirror's own texts (search panel, lint panel, completion) in the current language.
+// ---------------------------------------------------------------------------
+
+const CM_PHRASES: Readonly<Record<string, MessageKey>> = {
+  Find: 'state.cm.find',
+  Replace: 'state.cm.replace',
+  next: 'state.cm.next',
+  previous: 'state.cm.previous',
+  all: 'state.cm.all',
+  'match case': 'state.cm.matchCase',
+  regexp: 'state.cm.regexp',
+  'by word': 'state.cm.byWord',
+  replace: 'state.cm.replaceOne',
+  'replace all': 'state.cm.replaceAll',
+  close: 'state.cm.close',
+  'Go to line': 'state.cm.goToLine',
+  go: 'state.cm.go',
+  'current match': 'state.cm.currentMatch',
+  'on line': 'state.cm.onLine',
+  'replaced match on line $': 'state.cm.replacedOne',
+  'replaced $ matches': 'state.cm.replacedMany',
+  Diagnostics: 'state.cm.diagnostics',
+  'No diagnostics': 'state.cm.noDiagnostics',
+  Completions: 'state.cm.completions',
+  'Control character': 'state.cm.controlCharacter',
+  'Selection deleted': 'state.cm.selectionDeleted',
+};
+
+/** `EditorState.phrases` for the current locale (none in English, CodeMirror's own default). */
+export function editorPhrases(): Extension {
+  if (i18n.locale === 'en') return [];
+  return EditorState.phrases.of(Object.fromEntries(Object.entries(CM_PHRASES).map(([p, k]) => [p, t(k)])));
+}
+
+// ---------------------------------------------------------------------------
 // Lint: assembler diagnostics with quick fixes.
 // ---------------------------------------------------------------------------
 
@@ -196,8 +233,8 @@ export function asmLinter(): Extension {
                     actions: [
                       {
                         name: fix.title,
-                        apply: (v: EditorView, f: number, t: number) =>
-                          v.dispatch({ changes: { from: f, to: t, insert: fix.replacement } }),
+                        apply: (v: EditorView, f: number, to: number) =>
+                          v.dispatch({ changes: { from: f, to, insert: fix.replacement } }),
                       },
                     ],
                   }
@@ -254,13 +291,14 @@ export function asmHover(onReference: (mnemonic: string) => void): Extension {
             above: true,
             create: () => {
               const dom = el('div', 'cm-hover-card');
+              const text = instructionText(doc, i18n.locale);
               const head = el('div', 'hc-head');
-              head.append(el('span', 'hc-title mono', doc.mnemonic), el('span', 'hc-sub', doc.summary));
-              dom.append(head, el('p', 'hc-body', doc.details));
+              head.append(el('span', 'hc-title mono', doc.mnemonic), el('span', 'hc-sub', text.summary));
+              dom.append(head, el('p', 'hc-body', text.details));
               const forms = el('div', 'hc-forms mono');
               forms.textContent = doc.forms.map((f) => `${doc.mnemonic} ${f.operands}`.trim()).join('   ');
-              dom.append(forms, el('p', 'hc-flags', `Flags: ${doc.flags}`));
-              const link = el('button', 'hc-link', 'Open reference') as HTMLButtonElement;
+              dom.append(forms, el('p', 'hc-flags', t('state.editor.flags', { flags: text.flags })));
+              const link = el('button', 'hc-link', t('state.editor.openReference')) as HTMLButtonElement;
               link.type = 'button';
               link.onclick = () => onReference(doc.mnemonic);
               dom.append(link);
@@ -280,7 +318,10 @@ export function asmHover(onReference: (mnemonic: string) => void): Extension {
             create: () => {
               const dom = el('div', 'cm-hover-card small');
               const head = el('div', 'hc-head');
-              head.append(el('span', 'hc-title mono', upper), el('span', 'hc-sub', 'register'));
+              head.append(
+                el('span', 'hc-title mono', upper),
+                el('span', 'hc-sub', t('state.editor.register')),
+              );
               dom.append(
                 head,
                 el(
@@ -304,8 +345,15 @@ export function asmHover(onReference: (mnemonic: string) => void): Extension {
             create: () => {
               const dom = el('div', 'cm-hover-card small');
               const head = el('div', 'hc-head');
-              head.append(el('span', 'hc-title mono', word), el('span', 'hc-sub', 'label'));
-              dom.append(head, el('div', 'hc-values mono', `address 0x${hex(address)}   ${address}`));
+              head.append(el('span', 'hc-title mono', word), el('span', 'hc-sub', t('state.editor.label')));
+              dom.append(
+                head,
+                el(
+                  'div',
+                  'hc-values mono',
+                  t('state.editor.address', { hex: `0x${hex(address)}`, dec: address }),
+                ),
+              );
               return { dom };
             },
           };
@@ -336,7 +384,7 @@ function completeAsm(ctx: CompletionContext): CompletionResult | null {
       options: INSTRUCTIONS.flatMap((i) =>
         [i.mnemonic, ...i.aliases].map((m) => ({
           label: m,
-          detail: i.summary,
+          detail: instructionText(i, i18n.locale).summary,
           type: 'keyword',
           apply: `${m} `,
         })),
@@ -353,7 +401,7 @@ function completeAsm(ctx: CompletionContext): CompletionResult | null {
   const registers = ['A', 'B', 'C', 'D', 'SP'].map((r) => ({
     label: r,
     type: 'constant',
-    detail: 'register',
+    detail: t('state.editor.register'),
   }));
   return { from: word.from, options: [...registers, ...labels], validFor: /^[.\w]*$/ };
 }

@@ -5,7 +5,8 @@ import { SPEEDS, speedLabel } from '@app/run/protocol';
 import type { SettingsRepository } from '@app/settings/settings';
 import { DEFAULT_PROGRAM } from '@app/workspace/examples';
 import type { WorkspaceProvider } from '@app/workspace/workspace-provider';
-import { applyLanguage } from '../i18n/i18n.svelte';
+import { translateCoreMessage } from '../i18n/core-messages';
+import { applyLanguage, i18n, t, tn } from '../i18n/i18n.svelte';
 import { applyTheme } from '../theme/themes';
 import { displayKeys, Keymap, type Command } from './commands';
 import { SessionState } from './session.svelte';
@@ -57,10 +58,13 @@ export class AppController {
     this.workspace.beforeSwitch = async (dirty) => {
       const names = dirty.map((t) => t.title).join(', ');
       const choice = await this.ui.confirm({
-        title: dirty.length === 1 ? `Save changes to ${names}?` : `Save changes to ${dirty.length} files?`,
-        body: `${dirty.length === 1 ? 'It has' : `${names} have`} unsaved changes that will be lost if you switch workspace without saving.`,
-        confirm: 'Save',
-        alternate: "Don't save",
+        title:
+          dirty.length === 1
+            ? t('state.confirm.saveOne', { name: names })
+            : t('state.confirm.saveMany', { n: dirty.length }),
+        body: dirty.length === 1 ? t('state.confirm.switchOne') : t('state.confirm.switchMany', { names }),
+        confirm: t('common.save'),
+        alternate: t('state.confirm.dontSave'),
       });
       if (choice === 'cancel') return false;
       if (choice === 'confirm') return (await this.workspace.saveAll()) === dirty.length;
@@ -81,9 +85,23 @@ export class AppController {
   // ---------- derived ----------
 
   /** Assembly of the active file, recomputed as the user types (cheap: programs are ≤ 256 bytes). */
-  readonly activeAssembly: Assembly | null = $derived.by(() => {
+  private readonly rawAssembly: Assembly | null = $derived.by(() => {
     const tab = this.workspace.currentFile;
     return tab ? assemble(tab.text) : null;
+  });
+
+  /** The same assembly with its diagnostics in the current language (identical object in English). */
+  readonly activeAssembly: Assembly | null = $derived.by(() => {
+    const a = this.rawAssembly;
+    if (!a || i18n.locale === 'en' || a.diagnostics.length === 0) return a;
+    return {
+      ...a,
+      diagnostics: a.diagnostics.map((d) => ({
+        ...d,
+        message: translateCoreMessage(d.message),
+        ...(d.fix ? { fix: { ...d.fix, title: translateCoreMessage(d.fix.title) } } : {}),
+      })),
+    };
   });
 
   get activePath(): string | null {
@@ -108,6 +126,7 @@ export class AppController {
     this.session.pauseOnFault = s.pauseOnFault;
     this.session.scrollback = s.scrollback;
     applyLanguage(s.language);
+    this.workspace.retitleSpecial((kind, key) => this.specialTitle(kind, key));
     document.documentElement.style.setProperty('--code-size', `${s.fontSize}px`);
   }
 
@@ -126,7 +145,7 @@ export class AppController {
     if (accepted) {
       this.installAvailable = false;
       this.installed = true;
-      this.ui.toast('Asm8 is installed. Open it from your apps.', 'positive');
+      this.ui.toast(t('state.toast.installed'), 'positive');
     }
   }
 
@@ -136,7 +155,7 @@ export class AppController {
     const tab = this.workspace.currentFile;
     if (tab) fn(tab.key, tab.text);
     else if (this.session.program) fn(this.session.program.path, this.session.program.source);
-    else this.ui.toast('Open an .asm file to run it.');
+    else this.ui.toast(t('state.toast.openToRun'));
   }
 
   run(): void {
@@ -160,7 +179,12 @@ export class AppController {
   reset(): void {
     if (this.session.state === 'empty' || this.session.state === 'ready') return;
     this.session.reset();
-    this.ui.toast('Machine reset', 'info', { label: 'Undo', run: () => this.session.undoReset() }, 6000);
+    this.ui.toast(
+      t('state.toast.machineReset'),
+      'info',
+      { label: t('state.toast.undo'), run: () => this.session.undoReset() },
+      6000,
+    );
   }
 
   restart(): void {
@@ -191,8 +215,8 @@ export class AppController {
     if (await this.workspace.save(tab.id)) {
       this.ui.toast(
         this.workspace.fs.kind === 'folder'
-          ? `Saved ${tab.title} to disk`
-          : `Saved ${tab.title} in the browser workspace`,
+          ? t('state.toast.savedDisk', { name: tab.title })
+          : t('state.toast.savedBrowser', { name: tab.title }),
         'positive',
         undefined,
         2500,
@@ -202,7 +226,7 @@ export class AppController {
 
   async saveAll(): Promise<void> {
     const n = await this.workspace.saveAll();
-    if (n) this.ui.toast(`Saved ${n} file${n === 1 ? '' : 's'}`, 'positive', undefined, 2500);
+    if (n) this.ui.toast(tn('state.toast.savedFiles', n), 'positive', undefined, 2500);
   }
 
   async closeTab(id: string): Promise<void> {
@@ -210,10 +234,10 @@ export class AppController {
     const tab = this.workspace.tabs.find((t) => t.id === id);
     if (!tab) return;
     const choice = await this.ui.confirm({
-      title: `Save changes to ${tab.title}?`,
-      body: 'Your changes will be lost if you close without saving.',
-      confirm: 'Save',
-      alternate: "Don't save",
+      title: t('state.confirm.saveOne', { name: tab.title }),
+      body: t('state.confirm.closeBody'),
+      confirm: t('common.save'),
+      alternate: t('state.confirm.dontSave'),
     });
     if (choice === 'cancel') return;
     if (choice === 'confirm' && !(await this.workspace.save(id))) return;
@@ -226,17 +250,17 @@ export class AppController {
 
   async deletePath(path: string, isFolder: boolean): Promise<void> {
     const name = path.slice(path.lastIndexOf('/') + 1);
-    const where = this.workspace.fs?.kind === 'folder' ? 'from your disk' : 'from the browser workspace';
+    const disk = this.workspace.fs?.kind === 'folder';
     const choice = await this.ui.confirm({
-      title: `Delete ${name}?`,
+      title: t('state.confirm.deleteTitle', { name }),
       body: isFolder
-        ? `The folder and everything in it will be deleted ${where}. This cannot be undone.`
-        : `The file will be deleted ${where}. This cannot be undone.`,
-      confirm: 'Delete',
+        ? t(disk ? 'state.confirm.deleteFolder' : 'state.confirm.deleteFolderBrowser')
+        : t(disk ? 'state.confirm.deleteFile' : 'state.confirm.deleteFileBrowser'),
+      confirm: t('state.confirm.delete'),
       danger: true,
     });
     if (choice !== 'confirm') return;
-    if (await this.workspace.remove(path)) this.ui.toast(`Deleted ${name}`);
+    if (await this.workspace.remove(path)) this.ui.toast(t('state.toast.deleted', { name }));
   }
 
   async newFile(dir = ''): Promise<void> {
@@ -264,7 +288,7 @@ export class AppController {
     }
     if (!this.workspace.provider.canOpenFolders) {
       await this.workspace.openBrowserWorkspace();
-      this.ui.toast('This browser cannot open folders: using the browser workspace.');
+      this.ui.toast(t('state.toast.noFolders'));
       return;
     }
     await this.workspace.openFolder();
@@ -283,17 +307,23 @@ export class AppController {
   // ---------- views ----------
 
   openSettings(): void {
-    this.workspace.openSpecial('settings', 'settings', 'Settings');
+    this.workspace.openSpecial('settings', 'settings', this.specialTitle('settings', 'settings'));
   }
 
   openReference(mnemonic: string): void {
     const doc = findInstruction(mnemonic);
-    if (doc) this.workspace.openSpecial('reference', doc.mnemonic, `${doc.mnemonic} · reference`);
+    if (doc)
+      this.workspace.openSpecial('reference', doc.mnemonic, this.specialTitle('reference', doc.mnemonic));
+  }
+
+  /** Title of a settings or reference tab in the current language. */
+  private specialTitle(kind: 'settings' | 'reference', key: string): string {
+    return kind === 'settings' ? t('state.tab.settings') : t('state.tab.reference', { mnemonic: key });
   }
 
   insertExample(text: string): void {
     if (!this.workspace.activeFile) {
-      this.ui.toast('Open a file to insert the example.');
+      this.ui.toast(t('state.toast.openToInsert'));
       return;
     }
     const file = this.workspace.tabs.find((t) => t.kind === 'file');
@@ -316,235 +346,272 @@ export class AppController {
     const ws = this.workspace;
     const hasFile = () => ws.activeFile !== null;
     const canStep = () => !s.running && (hasFile() || s.program !== null);
+    const cat = {
+      run: t('state.category.run'),
+      file: t('state.category.file'),
+      go: t('state.category.go'),
+      view: t('state.category.view'),
+      preferences: t('state.category.preferences'),
+      help: t('state.category.help'),
+      app: t('state.category.app'),
+    };
     const cmds: Command[] = [
       {
         id: 'run.start',
-        category: 'Run',
-        title: 'Start',
+        category: cat.run,
+        title: t('state.cmd.start'),
         keys: 'F5',
         run: () => (s.running ? s.pause() : this.run()),
       },
       {
         id: 'run.step',
-        category: 'Run',
-        title: 'Step',
+        category: cat.run,
+        title: t('state.cmd.step'),
         keys: 'F10',
         run: () => this.step(),
         enabled: canStep,
       },
       {
         id: 'run.over',
-        category: 'Run',
-        title: 'Step over CALL',
+        category: cat.run,
+        title: t('state.cmd.stepOver'),
         keys: 'F11',
         run: () => this.step('stepOver'),
         enabled: canStep,
       },
       {
         id: 'run.out',
-        category: 'Run',
-        title: 'Step out of CALL',
+        category: cat.run,
+        title: t('state.cmd.stepOut'),
         keys: 'Shift+F11',
         run: () => this.step('stepOut'),
         enabled: canStep,
       },
       {
         id: 'run.restart',
-        category: 'Run',
-        title: 'Restart',
+        category: cat.run,
+        title: t('state.cmd.restart'),
         keys: 'Ctrl+Shift+F5',
         run: () => this.restart(),
       },
-      { id: 'run.stop', category: 'Run', title: 'Stop', keys: 'Shift+F5', run: () => s.stop() },
-      { id: 'run.reset', category: 'Run', title: 'Reset machine', run: () => this.reset() },
-      { id: 'run.pause', category: 'Run', title: 'Pause', run: () => s.pause(), enabled: () => s.running },
+      {
+        id: 'run.stop',
+        category: cat.run,
+        title: t('state.cmd.stop'),
+        keys: 'Shift+F5',
+        run: () => s.stop(),
+      },
+      { id: 'run.reset', category: cat.run, title: t('state.cmd.reset'), run: () => this.reset() },
+      {
+        id: 'run.pause',
+        category: cat.run,
+        title: t('state.cmd.pause'),
+        run: () => s.pause(),
+        enabled: () => s.running,
+      },
       ...SPEEDS.map((sp) => ({
         id: `run.speed.${sp}`,
-        category: 'Run',
-        title: `Set speed: ${speedLabel(sp)}`,
+        category: cat.run,
+        title: t('state.cmd.speed', { speed: speedLabel(sp) }),
         run: () => this.setSpeed(sp),
       })),
       {
         id: 'run.breakpoint',
-        category: 'Run',
-        title: 'Toggle breakpoint',
+        category: cat.run,
+        title: t('state.cmd.breakpoint'),
         keys: 'F9',
         run: () => this.toggleBreakpoint(),
         enabled: hasFile,
       },
       {
         id: 'run.clearBreakpoints',
-        category: 'Run',
-        title: 'Remove all breakpoints',
+        category: cat.run,
+        title: t('state.cmd.clearBreakpoints'),
         run: () => s.clearBreakpoints(),
       },
       {
         id: 'file.save',
-        category: 'File',
-        title: 'Save',
+        category: cat.file,
+        title: t('state.cmd.save'),
         keys: 'Ctrl+S',
         run: () => void this.save(),
         enabled: hasFile,
       },
       {
         id: 'file.saveAll',
-        category: 'File',
-        title: 'Save all',
+        category: cat.file,
+        title: t('state.cmd.saveAll'),
         keys: 'Ctrl+Alt+S',
         run: () => void this.saveAll(),
       },
-      { id: 'file.new', category: 'File', title: 'New file', keys: 'Alt+N', run: () => void this.newFile() },
-      { id: 'file.newFolder', category: 'File', title: 'New folder', run: () => void this.newFolder() },
+      {
+        id: 'file.new',
+        category: cat.file,
+        title: t('state.cmd.newFile'),
+        keys: 'Alt+N',
+        run: () => void this.newFile(),
+      },
+      {
+        id: 'file.newFolder',
+        category: cat.file,
+        title: t('state.cmd.newFolder'),
+        run: () => void this.newFolder(),
+      },
       {
         id: 'file.openFolder',
-        category: 'File',
-        title: 'Open folder…',
+        category: cat.file,
+        title: t('state.cmd.openFolder'),
         keys: 'Ctrl+K O',
         run: () => void this.openFolder(),
       },
       {
         id: 'file.openFile',
-        category: 'File',
-        title: 'Open file…',
+        category: cat.file,
+        title: t('state.cmd.openFile'),
         keys: 'Ctrl+O',
         run: () => void ws.importFiles(),
       },
       {
         id: 'file.browser',
-        category: 'File',
-        title: 'Open browser workspace',
+        category: cat.file,
+        title: t('state.cmd.browser'),
         run: () => void ws.openBrowserWorkspace(),
       },
       {
         id: 'file.examples',
-        category: 'File',
-        title: 'Open examples',
+        category: cat.file,
+        title: t('state.cmd.examples'),
         run: () => void ws.openExamples('hello.asm'),
       },
       {
         id: 'file.download',
-        category: 'File',
-        title: 'Download file',
+        category: cat.file,
+        title: t('state.cmd.download'),
         run: () => ws.download(),
         enabled: hasFile,
       },
       {
         id: 'file.close',
-        category: 'File',
-        title: 'Close editor',
+        category: cat.file,
+        title: t('state.cmd.close'),
         keys: 'Alt+W',
         run: () => ws.activeId && void this.closeTab(ws.activeId),
       },
       {
         id: 'go.file',
-        category: 'Go',
-        title: 'Go to file…',
+        category: cat.go,
+        title: t('state.cmd.goFile'),
         keys: 'Ctrl+P',
         run: () => (ui.overlay = { kind: 'palette', mode: 'files' }),
       },
       {
         id: 'go.commands',
-        category: 'View',
-        title: 'Command palette',
+        category: cat.view,
+        title: t('state.cmd.palette'),
         keys: 'Ctrl+Shift+P',
         run: () => (ui.overlay = { kind: 'palette', mode: 'commands' }),
       },
       {
         id: 'view.explorer',
-        category: 'View',
-        title: 'Show explorer',
+        category: cat.view,
+        title: t('state.cmd.explorer'),
         keys: 'Ctrl+Shift+E',
         run: () => (ui.sideView = 'explorer'),
       },
       {
         id: 'view.search',
-        category: 'View',
-        title: 'Search in files',
+        category: cat.view,
+        title: t('state.cmd.search'),
         keys: 'Ctrl+Shift+F',
         run: () => (ui.sideView = 'search'),
       },
       {
         id: 'view.debug',
-        category: 'View',
-        title: 'Show run and debug',
+        category: cat.view,
+        title: t('state.cmd.debug'),
         keys: 'Ctrl+Shift+D',
         run: () => (ui.sideView = 'debug'),
       },
       {
         id: 'view.reference',
-        category: 'View',
-        title: 'Show instruction set',
+        category: cat.view,
+        title: t('state.cmd.reference'),
         keys: 'Ctrl+Shift+I',
         run: () => (ui.sideView = 'reference'),
       },
       {
         id: 'view.sidebar',
-        category: 'View',
-        title: 'Toggle side bar',
+        category: cat.view,
+        title: t('state.cmd.sidebar'),
         keys: 'Ctrl+B',
         run: () => (ui.sideView = ui.sideView ? null : 'explorer'),
       },
       {
         id: 'view.console',
-        category: 'View',
-        title: 'Show console',
+        category: cat.view,
+        title: t('state.cmd.console'),
         keys: 'Ctrl+J',
         run: () => (ui.panelTab = 'console'),
       },
       {
         id: 'view.problems',
-        category: 'View',
-        title: 'Show problems',
+        category: cat.view,
+        title: t('state.cmd.problems'),
         keys: 'Ctrl+Shift+M',
         run: () => (ui.panelTab = 'problems'),
       },
-      { id: 'view.display', category: 'View', title: 'Show display', run: () => (ui.panelTab = 'display') },
+      {
+        id: 'view.display',
+        category: cat.view,
+        title: t('state.cmd.display'),
+        run: () => (ui.panelTab = 'display'),
+      },
       {
         id: 'view.writes',
-        category: 'View',
-        title: 'Show memory writes',
+        category: cat.view,
+        title: t('state.cmd.writes'),
         run: () => (ui.panelTab = 'writes'),
       },
       {
         id: 'view.clearConsole',
-        category: 'View',
-        title: 'Clear console',
+        category: cat.view,
+        title: t('state.cmd.clearConsole'),
         keys: 'Ctrl+L',
         run: () => s.clearConsole(),
       },
       {
         id: 'pref.settings',
-        category: 'Preferences',
-        title: 'Open settings',
+        category: cat.preferences,
+        title: t('state.cmd.settings'),
         keys: 'Ctrl+,',
         run: () => this.openSettings(),
       },
       {
         id: 'pref.theme',
-        category: 'Preferences',
-        title: 'Color theme…',
+        category: cat.preferences,
+        title: t('state.cmd.theme'),
         keys: 'Ctrl+K T',
         run: () => (ui.overlay = { kind: 'themes' }),
       },
       {
         id: 'pref.shortcuts',
-        category: 'Preferences',
-        title: 'Keyboard shortcuts',
+        category: cat.preferences,
+        title: t('state.cmd.shortcuts'),
         keys: 'Ctrl+K S',
         run: () => (ui.overlay = { kind: 'shortcuts' }),
       },
       {
         id: 'help.about',
-        category: 'Help',
-        title: 'About Asm8',
+        category: cat.help,
+        title: t('state.cmd.about'),
         run: () => (ui.overlay = { kind: 'about' }),
       },
     ];
     if (this.installAvailable)
       cmds.push({
         id: 'app.install',
-        category: 'App',
-        title: 'Install Asm8',
+        category: cat.app,
+        title: t('state.cmd.install'),
         run: () => void this.install(),
       });
     return cmds;

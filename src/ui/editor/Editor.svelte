@@ -24,11 +24,13 @@
     asmLinter,
     breakpointGutter,
     dataField,
+    editorPhrases,
     runMarker,
     setData,
     type EditorData,
   } from './extensions';
   import type { EditorBridge } from '../state/app.svelte';
+  import { i18n } from '../i18n/i18n.svelte';
 
   interface Props {
     tabId: string;
@@ -72,6 +74,7 @@
   let currentTab = '';
   const tabCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();
+  const phrasesCompartment = new Compartment();
 
   // Latest callbacks (props can change without recreating the view).
   const cb = {
@@ -131,6 +134,7 @@
       asmCompletion,
       tabCompartment.of([EditorState.tabSize.of(tabSize), indentUnit.of('\t')]),
       readOnlyCompartment.of(EditorState.readOnly.of(readOnly)),
+      phrasesCompartment.of(editorPhrases()),
       keymap.of([
         ...completionKeymap,
         ...searchKeymap,
@@ -229,7 +233,12 @@
       states.set(currentTab, view.state);
       currentTab = id;
       view.setState(stateFor(id, doc));
-      view.dispatch({ effects: setData.of($state.snapshot(data) as EditorData) });
+      view.dispatch({
+        effects: [
+          setData.of($state.snapshot(data) as EditorData),
+          phrasesCompartment.reconfigure(editorPhrases()),
+        ],
+      });
     } else if (view.state.doc.toString() !== doc) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: doc } });
     }
@@ -248,6 +257,12 @@
         readOnlyCompartment.reconfigure(EditorState.readOnly.of(readOnly)),
       ],
     });
+  });
+
+  // CodeMirror's own texts follow the language setting.
+  $effect(() => {
+    void i18n.locale;
+    view?.dispatch({ effects: phrasesCompartment.reconfigure(editorPhrases()) });
   });
 
   // Keep the cursor on screen when the editor gets shorter (the phone keyboard opening).

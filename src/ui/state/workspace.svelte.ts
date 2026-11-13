@@ -8,6 +8,8 @@ import {
   type FileSystemPort,
 } from '@app/workspace/file-system';
 import type { PickedFile, RecentFolder, WorkspaceProvider } from '@app/workspace/workspace-provider';
+import { t } from '../i18n/i18n.svelte';
+import { translateCoreMessage } from '../i18n/core-messages';
 
 export type TabKind = 'file' | 'settings' | 'reference';
 
@@ -258,6 +260,11 @@ export class WorkspaceState {
     this.activate(id);
   }
 
+  /** Renames the settings and reference tabs (after a language change). */
+  retitleSpecial(title: (kind: Exclude<TabKind, 'file'>, key: string) => string): void {
+    for (const tab of this.tabs) if (tab.kind !== 'file') tab.title = title(tab.kind, tab.key);
+  }
+
   updateText(id: string, text: string): void {
     const tab = this.tabs.find((t) => t.id === id);
     if (tab) tab.text = text;
@@ -303,7 +310,7 @@ export class WorkspaceState {
     const onDisk = await fs.stat(tab.key).catch(() => null);
     if (onDisk !== null && onDisk > tab.lastModified) {
       tab.changedOnDisk = true;
-      this.error = `${tab.title} changed on disk. Choose Keep mine or Load from disk.`;
+      this.error = t('state.workspace.changedOnDisk', { name: tab.title });
       return false;
     }
     const lastModified = await this.attempt(() => fs.write(tab.key, text));
@@ -421,17 +428,17 @@ export class WorkspaceState {
   /** Returns an error message, or null after renaming. Open tabs follow the file. */
   async rename(path: string, newName: string): Promise<string | null> {
     const fs = this.fs;
-    if (!fs) return 'No workspace open.';
+    if (!fs) return t('state.workspace.noWorkspace');
     const dir = dirname(path);
     if (newName.trim() === basename(path)) return null;
     const problem = validateName(
       newName,
       this.siblingsOf(dir).filter((n) => n !== basename(path)),
     );
-    if (problem) return problem;
+    if (problem) return translateCoreMessage(problem);
     const to = joinPath(dir, newName.trim());
     const ok = await this.attempt(() => fs.rename(path, to).then(() => true));
-    if (!ok) return this.error;
+    if (!ok) return this.error && translateCoreMessage(this.error);
     for (const t of this.tabs) {
       if (t.kind === 'file' && (t.key === path || t.key.startsWith(path + '/'))) {
         const key = to + t.key.slice(path.length);
