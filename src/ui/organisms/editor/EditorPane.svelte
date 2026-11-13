@@ -3,6 +3,7 @@
   import Button from '../../atoms/Button.svelte';
   import Editor from '../../editor/Editor.svelte';
   import type { EditorData, RunMarker } from '../../editor/extensions';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import type { Tab } from '../../state/workspace.svelte';
 
@@ -19,21 +20,28 @@
     const snap = s.snapshot;
     if (!snap || !s.program || s.program.path !== tab.key || snap.line === undefined) return null;
     if (s.program.source !== tab.text) return null;
-    const step = `step ${snap.steps}`;
+    const step = t('editor.pane.step', { n: snap.steps });
     switch (s.state) {
       case 'paused': {
         const stop = s.lastStop;
-        const hint = stop?.kind === 'breakpoint' ? `paused at breakpoint · ${step}` : `paused · ${step}`;
+        const hint =
+          stop?.kind === 'breakpoint'
+            ? t('editor.pane.pausedAtBreakpoint', { step })
+            : t('editor.pane.paused', { step });
         return { line: snap.line, tone: 'paused', hint };
       }
       case 'waiting':
-        return { line: snap.line, tone: 'paused', hint: 'waiting for a key' };
+        return { line: snap.line, tone: 'paused', hint: t('editor.pane.waiting') };
       case 'fault':
         return settings.pauseOnFault
-          ? { line: snap.line, tone: 'error', hint: `${snap.fault ?? 'fault'} · ${step}` }
+          ? {
+              line: snap.line,
+              tone: 'error',
+              hint: t('editor.pane.faultHint', { fault: snap.fault ?? t('editor.pane.fault'), step }),
+            }
           : null;
       case 'halted':
-        return { line: snap.line, tone: 'halted', hint: `halted · ${snap.steps} steps` };
+        return { line: snap.line, tone: 'halted', hint: t('editor.pane.halted', { n: snap.steps }) };
       case 'running':
         return s.speed === 'max' ? null : { line: snap.line, tone: 'running', hint: '' };
       default:
@@ -64,35 +72,39 @@
 <div class="pane">
   {#if tab.changedOnDisk}
     <div class="banner warn" role="alert">
-      <span><strong>{tab.title}</strong> changed on disk while you were editing it.</span>
-      <Button size="sm" disabled title="Side-by-side compare is coming in a future version">Compare</Button>
-      <Button size="sm" onclick={() => app.workspace.keepMine(tab.id)}>Keep mine</Button>
-      <Button size="sm" variant="primary" onclick={() => app.workspace.reload(tab.id)}>Load from disk</Button>
+      <span><strong>{tab.title}</strong> {t('editor.pane.changedOnDisk')}</span>
+      <Button size="sm" disabled title={t('editor.pane.compareSoon')}>{t('editor.pane.compare')}</Button>
+      <Button size="sm" onclick={() => app.workspace.keepMine(tab.id)}>{t('editor.pane.keepMine')}</Button>
+      <Button size="sm" variant="primary" onclick={() => app.workspace.reload(tab.id)}
+        >{t('editor.pane.loadFromDisk')}</Button
+      >
     </div>
   {:else if readOnly}
     <div class="banner" role="status">
-      <span>Read-only: Asm8 needs access to <strong>{app.workspace.fs?.name}</strong> again to save.</span>
+      <span
+        >{t('editor.pane.readOnlyBefore')} <strong>{app.workspace.fs?.name}</strong>
+        {t('editor.pane.readOnlyAfter')}</span
+      >
       <Button size="sm" variant="primary" onclick={() => app.workspace.allowAccess()}
-        >Allow access again</Button
+        >{t('editor.pane.allowAgain')}</Button
       >
     </div>
   {:else if app.workspace.fs?.kind === 'browser' && !app.workspace.provider.canOpenFolders}
     <div class="banner" role="status">
-      <span
-        >This browser cannot open folders on disk. Files are kept in the browser workspace; use Download to
-        keep a copy.</span
-      >
+      <span>{t('editor.pane.noFolders')}</span>
     </div>
   {/if}
   {#if s.state === 'fault' && s.program?.path === tab.key && s.snapshot?.fault && settings.pauseOnFault}
     <div class="banner error" role="alert">
       <span
-        >{s.snapshot.fault} at 0x{hex(s.snapshot.faultAddress ?? s.snapshot.registers.ip)}{s.snapshot.line !==
-        undefined
-          ? `, line ${s.snapshot.line + 1}`
-          : ''}. Reset to run again.</span
+        >{t('editor.pane.faultAt', {
+          fault: s.snapshot.fault,
+          addr: hex(s.snapshot.faultAddress ?? s.snapshot.registers.ip),
+        })}{s.snapshot.line !== undefined ? t('editor.pane.faultLine', { line: s.snapshot.line + 1 }) : ''}{t(
+          'editor.pane.faultEnd',
+        )}</span
       >
-      <Button size="sm" onclick={() => app.reset()}>Reset</Button>
+      <Button size="sm" onclick={() => app.reset()}>{t('common.reset')}</Button>
     </div>
   {/if}
   <div class="host">
@@ -103,7 +115,7 @@
       {compact}
       {readOnly}
       tabSize={compact ? Math.min(settings.tabSize, 4) : settings.tabSize}
-      label="{tab.title} source code"
+      label={t('editor.pane.sourceCode', { title: tab.title })}
       onchange={(t) => app.workspace.updateText(tab.id, t)}
       ontogglebreakpoint={(line) => s.toggleBreakpoint(tab.key, line)}
       onbreakpointsmoved={(lines) => {
