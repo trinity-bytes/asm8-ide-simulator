@@ -10,7 +10,7 @@ export const en = {
   'shell.state.halted': 'Halted',
   'shell.state.error': 'Error',
   'shell.state.runningStep': 'Running · step {n}',
-  'shell.state.waitingKey': 'Waiting for a key · port 0x00',
+  'shell.state.waitingKey': 'Waiting for a key',
   'shell.state.pausedLine': 'Paused at line {line} · step {n}',
   // English keeps "steps" for 1 too (unchanged wording); Spanish uses the singular.
   'shell.state.haltedSteps.one': 'Halted · {n} steps',
@@ -165,7 +165,7 @@ export const es: Translation<typeof en> = {
   'shell.state.halted': 'Detenido',
   'shell.state.error': 'Error',
   'shell.state.runningStep': 'Ejecutando · paso {n}',
-  'shell.state.waitingKey': 'Esperando una tecla · puerto 0x00',
+  'shell.state.waitingKey': 'Esperando una tecla',
   'shell.state.pausedLine': 'En pausa en la línea {line} · paso {n}',
   'shell.state.haltedSteps.one': 'Detenido · {n} paso',
   'shell.state.haltedSteps.other': 'Detenido · {n} pasos',

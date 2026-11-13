@@ -19,9 +19,9 @@ export const en = {
   'panels.console.earlier': 'Show {count} earlier lines ({hidden} hidden)',
   'panels.console.empty':
     'Nothing here yet. Program output, errors and keyboard input appear in this console.',
-  'panels.console.waitingMeta': 'waiting for a key · port 0x00',
+  'panels.console.waitingMeta': 'waiting for a key',
   'panels.console.placeholderWaiting': 'The program is waiting: type a key',
-  'panels.console.placeholder': 'Type to send keys to the program (port 0x00)',
+  'panels.console.placeholder': 'Type to send keys to the program',
   'panels.console.input': 'Keyboard input for the program',
   // DisplayView
   'panels.display.aria': 'Display: {text}',
@@ -183,9 +183,9 @@ export const es: Translation<typeof en> = {
   'panels.console.earlier': 'Mostrar {count} líneas anteriores ({hidden} ocultas)',
   'panels.console.empty':
     'Aún no hay nada. La salida del programa, los errores y la entrada de teclado aparecen en esta consola.',
-  'panels.console.waitingMeta': 'esperando una tecla · puerto 0x00',
+  'panels.console.waitingMeta': 'esperando una tecla',
   'panels.console.placeholderWaiting': 'El programa está esperando: escribe una tecla',
-  'panels.console.placeholder': 'Escribe para enviar teclas al programa (puerto 0x00)',
+  'panels.console.placeholder': 'Escribe para enviar teclas al programa',
   'panels.console.input': 'Entrada de teclado para el programa',
   'panels.display.aria': 'Pantalla: {text}',
   'panels.display.empty': 'vacía',

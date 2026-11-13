@@ -37,3 +37,14 @@ describe('t', () => {
     i18n.locale = 'en';
   });
 });
+
+describe('message tables', () => {
+  it('never mention I/O ports: IN and OUT take only a register', async () => {
+    const tables = await Promise.all(
+      ['common', 'state', 'shell', 'panels', 'editor', 'docs'].map((a) => import(`./messages/${a}.ts`)),
+    );
+    for (const m of tables)
+      for (const text of [...Object.values(m.en), ...Object.values(m.es)] as string[])
+        expect(text, text).not.toMatch(/\bport 0x|\bpuerto 0x/i);
+  });
+});
