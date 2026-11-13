@@ -5,6 +5,7 @@ import BookOpen from '@lucide/svelte/icons/book-open';
 import Bug from '@lucide/svelte/icons/bug';
 import Check from '@lucide/svelte/icons/check';
 import ChevronDown from '@lucide/svelte/icons/chevron-down';
+import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 import ChevronRight from '@lucide/svelte/icons/chevron-right';
 import CircleAlert from '@lucide/svelte/icons/circle-exclamation-point';
 import CircleCheck from '@lucide/svelte/icons/circle-check';
@@ -64,6 +65,7 @@ export const ICONS = {
   refresh: RefreshCw,
   close: X,
   chevronDown: ChevronDown,
+  chevronLeft: ChevronLeft,
   chevronRight: ChevronRight,
   check: Check,
   plus: Plus,

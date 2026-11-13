@@ -92,6 +92,15 @@
 
 <div class="phone">
   <header class="top">
+    {#if ui.phoneRegion === 'code' && ws.active}
+      {@const active = ws.active}
+      <IconButton
+        icon={active.kind === 'file' ? 'close' : 'chevronLeft'}
+        label={active.kind === 'file' ? `Close ${active.title}` : 'Back to editor'}
+        size="touch"
+        onclick={() => app.closeTab(active.id)}
+      />
+    {/if}
     <div class="who">
       <strong>{title}</strong>
       <span class="state {s.state}"><span class="dot"></span>{stateLine}</span>

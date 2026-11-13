@@ -250,6 +250,23 @@
     });
   });
 
+  // Keep the cursor on screen when the editor gets shorter (the phone keyboard opening).
+  $effect(() => {
+    if (!host) return;
+    let last = host.clientHeight;
+    const ro = new ResizeObserver(() => {
+      const h = host?.clientHeight ?? 0;
+      const shrank = h < last;
+      last = h;
+      if (!view || !shrank || !view.hasFocus) return;
+      view.dispatch({
+        effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'nearest', yMargin: 24 }),
+      });
+    });
+    ro.observe(host);
+    return () => ro.disconnect();
+  });
+
   // Reveal the current line when the run stops somewhere off-screen.
   $effect(() => {
     const m = data.marker;
