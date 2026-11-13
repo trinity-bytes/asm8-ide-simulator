@@ -1,11 +1,12 @@
 <script lang="ts">
   import { SPEEDS, speedLabel, type Speed } from '@app/run/protocol';
-  import { FONT_SIZES, SCROLLBACK_SIZES, TAB_SIZES, type Settings } from '@app/settings/settings';
+  import { FONT_SIZES, LANGUAGES, SCROLLBACK_SIZES, TAB_SIZES, type Settings } from '@app/settings/settings';
   import Button from '../../atoms/Button.svelte';
   import Segmented from '../../atoms/Segmented.svelte';
   import Select from '../../atoms/Select.svelte';
   import Switch from '../../atoms/Switch.svelte';
   import TextField from '../../atoms/TextField.svelte';
+  import { i18n, t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import { applyTheme, THEMES, type ThemeId } from '../../theme/themes';
 
@@ -13,83 +14,54 @@
   const st = app.settings;
   let query = $state('');
   let body: HTMLDivElement | null = $state(null);
-  let current = $state('Editor');
+  let current = $state<Section>('Editor');
 
-  type Row = { section: string; key: string; title: string; desc: string };
+  type Section = 'Editor' | 'Run' | 'Machine' | 'Console' | 'Appearance' | 'Keyboard' | 'App';
+  type RowKey =
+    | 'fontSize'
+    | 'tabSize'
+    | 'showAddresses'
+    | 'inlineHints'
+    | 'defaultSpeed'
+    | 'pauseOnFault'
+    | 'numberBase'
+    | 'markChanges'
+    | 'scrollback'
+    | 'consoleWrap'
+    | 'theme'
+    | 'language'
+    | 'shortcuts'
+    | 'install';
+  /** Stable ids (English); the visible text comes from the message table at render time. */
+  type Row = { section: Section; key: RowKey };
   const ROWS: Row[] = [
-    { section: 'Editor', key: 'fontSize', title: 'Font size', desc: 'Code and console text.' },
-    { section: 'Editor', key: 'tabSize', title: 'Tab size', desc: 'Spaces per tab when you press Tab.' },
-    {
-      section: 'Editor',
-      key: 'showAddresses',
-      title: 'Byte addresses in the gutter',
-      desc: 'Show where each line lands in memory.',
-    },
-    {
-      section: 'Editor',
-      key: 'inlineHints',
-      title: 'Inline hints',
-      desc: 'Show results and errors at the end of the line.',
-    },
-    { section: 'Run', key: 'defaultSpeed', title: 'Default speed', desc: 'Clock speed when you press Run.' },
-    {
-      section: 'Run',
-      key: 'pauseOnFault',
-      title: 'Pause on runtime faults',
-      desc: 'Stop and point at the line instead of halting.',
-    },
-    {
-      section: 'Machine',
-      key: 'numberBase',
-      title: 'Number base',
-      desc: 'How registers and memory values are shown.',
-    },
-    {
-      section: 'Machine',
-      key: 'markChanges',
-      title: 'Mark changed values',
-      desc: 'Highlight registers and bytes changed by the last step.',
-    },
-    {
-      section: 'Console',
-      key: 'scrollback',
-      title: 'Console scrollback',
-      desc: 'Lines kept before the oldest are dropped.',
-    },
-    {
-      section: 'Console',
-      key: 'consoleWrap',
-      title: 'Wrap long lines',
-      desc: 'Off: long lines scroll sideways.',
-    },
-    {
-      section: 'Appearance',
-      key: 'theme',
-      title: 'Color theme',
-      desc: 'Asm8 Dark meets contrast guidelines; the others keep their original colors.',
-    },
-    {
-      section: 'Keyboard',
-      key: 'shortcuts',
-      title: 'Keyboard shortcuts',
-      desc: 'Every command and its keys.',
-    },
-    {
-      section: 'App',
-      key: 'install',
-      title: 'Install Asm8',
-      desc: 'Open it like any app, work offline and keep folder access.',
-    },
+    { section: 'Editor', key: 'fontSize' },
+    { section: 'Editor', key: 'tabSize' },
+    { section: 'Editor', key: 'showAddresses' },
+    { section: 'Editor', key: 'inlineHints' },
+    { section: 'Run', key: 'defaultSpeed' },
+    { section: 'Run', key: 'pauseOnFault' },
+    { section: 'Machine', key: 'numberBase' },
+    { section: 'Machine', key: 'markChanges' },
+    { section: 'Console', key: 'scrollback' },
+    { section: 'Console', key: 'consoleWrap' },
+    { section: 'Appearance', key: 'theme' },
+    { section: 'Appearance', key: 'language' },
+    { section: 'Keyboard', key: 'shortcuts' },
+    { section: 'App', key: 'install' },
   ];
-  const SECTIONS = ['Editor', 'Run', 'Machine', 'Console', 'Appearance', 'Keyboard', 'App'];
+  const SECTIONS: Section[] = ['Editor', 'Run', 'Machine', 'Console', 'Appearance', 'Keyboard', 'App'];
 
-  const visible = $derived(
-    ROWS.filter(
-      (r) =>
-        !query.trim() ||
-        `${r.title} ${r.desc} ${r.section}`.toLowerCase().includes(query.trim().toLowerCase()),
-    ),
-  );
+  const title = (r: Row) => t(`editor.settings.${r.key}.title`);
+  const desc = (r: Row) => t(`editor.settings.${r.key}.desc`);
+  const sectionName = (s: Section) => t(`editor.settings.section.${s}`);
+  /** Case- and accent-insensitive, so "tamano" finds "Tamaño". */
+  const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase(i18n.locale);
+
+  const visible = $derived.by(() => {
+    const q = fold(query.trim());
+    return ROWS.filter((r) => !q || fold(`${title(r)} ${desc(r)} ${sectionName(r.section)}`).includes(q));
+  });
 
   function set<K extends keyof Settings>(key: K, v: Settings[K]) {
     st.set(key, v);
@@ -101,7 +73,7 @@
     applyTheme(id);
   }
 
-  function jump(section: string) {
+  function jump(section: Section) {
     current = section;
     body
       ?.querySelector(`[data-section="${section}"]`)
@@ -111,16 +83,21 @@
 
 <div class="settings">
   <div class="search">
-    <TextField bind:value={query} label="Search settings" placeholder="Search settings" icon="search" />
+    <TextField
+      bind:value={query}
+      label={t('editor.settings.search')}
+      placeholder={t('editor.settings.search')}
+      icon="search"
+    />
   </div>
   <div class="layout">
-    <nav aria-label="Settings sections">
+    <nav aria-label={t('editor.settings.sections')}>
       {#each SECTIONS as sec (sec)}
         <button
           type="button"
           class:active={current === sec}
           aria-current={current === sec ? 'true' : undefined}
-          onclick={() => jump(sec)}>{sec}</button
+          onclick={() => jump(sec)}>{sectionName(sec)}</button
         >
       {/each}
     </nav>
@@ -128,18 +105,18 @@
       {#each SECTIONS as sec (sec)}
         {@const rows = visible.filter((r) => r.section === sec)}
         {#if rows.length}
-          <h2 data-section={sec}>{sec}</h2>
+          <h2 data-section={sec}>{sectionName(sec)}</h2>
           {#each rows as r (r.key)}
             <div class="row">
               <div class="text">
-                <label for="set-{r.key}">{r.title}</label>
-                <p>{r.desc}</p>
+                <label for="set-{r.key}">{title(r)}</label>
+                <p>{desc(r)}</p>
               </div>
               <div class="control">
                 {#if r.key === 'fontSize'}
                   <Select
                     id="set-fontSize"
-                    label="Font size"
+                    label={title(r)}
                     value={st.value.fontSize}
                     options={FONT_SIZES.map((v) => ({ value: v, label: `${v} px` }))}
                     onchange={(v) => set('fontSize', v)}
@@ -147,7 +124,7 @@
                 {:else if r.key === 'tabSize'}
                   <Select
                     id="set-tabSize"
-                    label="Tab size"
+                    label={title(r)}
                     value={st.value.tabSize}
                     options={TAB_SIZES.map((v) => ({ value: v, label: String(v) }))}
                     onchange={(v) => set('tabSize', v)}
@@ -155,23 +132,26 @@
                 {:else if r.key === 'showAddresses'}
                   <Switch
                     id="set-showAddresses"
-                    label={r.title}
+                    label={title(r)}
                     checked={st.value.showAddresses}
                     onchange={(v) => set('showAddresses', v)}
                   />
                 {:else if r.key === 'inlineHints'}
                   <Switch
                     id="set-inlineHints"
-                    label={r.title}
+                    label={title(r)}
                     checked={st.value.inlineHints}
                     onchange={(v) => set('inlineHints', v)}
                   />
                 {:else if r.key === 'defaultSpeed'}
                   <Select
                     id="set-defaultSpeed"
-                    label="Default speed"
+                    label={title(r)}
                     value={String(st.value.defaultSpeed)}
-                    options={SPEEDS.map((v) => ({ value: String(v), label: speedLabel(v) }))}
+                    options={SPEEDS.map((v) => ({
+                      value: String(v),
+                      label: v === 'max' ? t('editor.settings.speedMax') : speedLabel(v),
+                    }))}
                     onchange={(v) => {
                       const speed = (v === 'max' ? 'max' : Number(v)) as Speed;
                       set('defaultSpeed', speed);
@@ -181,13 +161,13 @@
                 {:else if r.key === 'pauseOnFault'}
                   <Switch
                     id="set-pauseOnFault"
-                    label={r.title}
+                    label={title(r)}
                     checked={st.value.pauseOnFault}
                     onchange={(v) => set('pauseOnFault', v)}
                   />
                 {:else if r.key === 'numberBase'}
                   <Segmented
-                    label="Number base"
+                    label={title(r)}
                     value={st.value.numberBase}
                     options={[
                       { value: 'hex', label: 'Hex' },
@@ -199,55 +179,63 @@
                 {:else if r.key === 'markChanges'}
                   <Switch
                     id="set-markChanges"
-                    label={r.title}
+                    label={title(r)}
                     checked={st.value.markChanges}
                     onchange={(v) => set('markChanges', v)}
                   />
                 {:else if r.key === 'scrollback'}
                   <Select
                     id="set-scrollback"
-                    label="Console scrollback"
+                    label={title(r)}
                     value={st.value.scrollback}
                     options={SCROLLBACK_SIZES.map((v) => ({
                       value: v,
-                      label: `${v.toLocaleString('en')} lines`,
+                      label: t('editor.settings.lines', { n: v.toLocaleString(i18n.locale) }),
                     }))}
                     onchange={(v) => set('scrollback', v)}
                   />
                 {:else if r.key === 'consoleWrap'}
                   <Switch
                     id="set-consoleWrap"
-                    label={r.title}
+                    label={title(r)}
                     checked={st.value.consoleWrap}
                     onchange={(v) => set('consoleWrap', v)}
                   />
                 {:else if r.key === 'theme'}
-                  <div class="themes" role="radiogroup" aria-label="Color theme" id="set-theme">
-                    {#each THEMES as t (t.id)}
+                  <div class="themes" role="radiogroup" aria-label={title(r)} id="set-theme">
+                    {#each THEMES as theme (theme.id)}
                       <button
                         type="button"
                         role="radio"
-                        aria-checked={st.value.theme === t.id}
+                        aria-checked={st.value.theme === theme.id}
                         class="theme"
-                        onclick={() => setTheme(t.id)}
+                        onclick={() => setTheme(theme.id)}
                       >
-                        <span class="sw" style:background={t.swatches[0]}>
-                          {#each t.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}
+                        <span class="sw" style:background={theme.swatches[0]}>
+                          {#each theme.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}
                         </span>
-                        {t.name}
+                        {theme.name}
                       </button>
                     {/each}
                   </div>
+                {:else if r.key === 'language'}
+                  <Select
+                    id="set-language"
+                    label={title(r)}
+                    value={st.value.language}
+                    options={LANGUAGES.map((v) => ({ value: v, label: t(`editor.settings.language.${v}`) }))}
+                    onchange={(v) => set('language', v)}
+                  />
                 {:else if r.key === 'shortcuts'}
                   <Button id="set-shortcuts" onclick={() => (app.ui.overlay = { kind: 'shortcuts' })}
-                    >Show shortcuts</Button
+                    >{t('editor.settings.showShortcuts')}</Button
                   >
                 {:else if r.key === 'install'}
                   {#if app.installed}
-                    <span class="muted">Installed</span>
+                    <span class="muted">{t('editor.settings.installed')}</span>
                   {:else}
                     <Button id="set-install" disabled={!app.installAvailable} onclick={() => app.install()}
-                      >Install</Button
+                      >{t('editor.settings.install')}</Button
                     >
                   {/if}
                 {/if}
@@ -255,14 +243,14 @@
             </div>
           {/each}
         {/if}
-      {:else}
-        <p class="muted">No setting matches “{query}”.</p>
       {/each}
+      {#if !visible.length}
+        <p class="muted">{t('editor.settings.noMatch', { query })}</p>
+      {/if}
       <p class="foot muted">
-        Settings are saved automatically in this browser. <button
-          type="button"
-          class="link"
-          onclick={() => (app.ui.overlay = { kind: 'about' })}>About Asm8</button
+        {t('editor.settings.savedHere')}
+        <button type="button" class="link" onclick={() => (app.ui.overlay = { kind: 'about' })}
+          >{t('editor.settings.about')}</button
         >
       </p>
     </div>

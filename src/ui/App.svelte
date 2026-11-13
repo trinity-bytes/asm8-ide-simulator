@@ -9,6 +9,8 @@
   import Overlays from './organisms/overlays/Overlays.svelte';
   import PhoneWorkbench from './screens/PhoneWorkbench.svelte';
   import Workbench from './screens/Workbench.svelte';
+  import { translateCoreMessage } from './i18n/core-messages';
+  import { t } from './i18n/i18n.svelte';
   import { AppController } from './state/app.svelte';
   import type { Layout } from './state/ui.svelte';
 
@@ -58,10 +60,10 @@
     registerServiceWorker(
       (apply) =>
         app.ui.toast(
-          'A new version of Asm8 is ready.',
+          t('state.app.newVersion'),
           'info',
           {
-            label: 'Reload',
+            label: t('state.app.reload'),
             run: async () => {
               if (app.workspace.dirtyTabs.length) await app.saveAll();
               apply();
@@ -69,12 +71,14 @@
           },
           60_000,
         ),
-      () => app.ui.toast('Asm8 now works offline.', 'positive'),
+      () => app.ui.toast(t('state.app.offline'), 'positive'),
     );
     onLaunchFiles((files) => {
       void app.workspace
         .importPicked(files)
-        .then((n) => n && app.ui.toast(`Opened ${files.map((f) => f.name).join(', ')}`));
+        .then(
+          (n) => n && app.ui.toast(t('state.app.opened', { names: files.map((f) => f.name).join(', ') })),
+        );
     });
     const stopInstall = setupInstall(
       (prompt) => app.setInstallPrompt(prompt),
@@ -97,7 +101,7 @@
   $effect(() => {
     const err = app.workspace.error;
     if (err) {
-      app.ui.toast(err, 'negative');
+      app.ui.toast(translateCoreMessage(err), 'negative');
       app.workspace.error = null;
     }
   });

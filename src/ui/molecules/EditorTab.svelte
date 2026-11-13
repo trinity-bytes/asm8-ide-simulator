@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../atoms/Icon.svelte';
+  import { t } from '../i18n/i18n.svelte';
 
   interface Props {
     title: string;
@@ -47,7 +48,7 @@
     class="close"
     class:dirty
     role="presentation"
-    title="Close{dirty ? ' (unsaved changes)' : ''}"
+    title={t(dirty ? 'shell.tab.closeUnsaved' : 'shell.tab.close')}
     onclick={(e) => {
       e.stopPropagation();
       onclose();
@@ -56,7 +57,7 @@
     <span class="dot" aria-hidden="true"></span>
     <Icon name="close" size={14} />
   </span>
-  {#if dirty}<span class="sr-only">, unsaved changes</span>{/if}
+  {#if dirty}<span class="sr-only">{t('shell.tab.unsaved')}</span>{/if}
 </div>
 
 <style>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import Kbd from '../../atoms/Kbd.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import { fuzzyScore } from '../../state/commands';
 
@@ -40,8 +41,11 @@
         const recentItems = recent.map((id) => all.find((x) => x.c.id === id)).filter((x) => x !== undefined);
         const rest = all.filter((x) => !recent.includes(x.c.id));
         return [
-          ...recentItems.map((x) => ({ x, group: 'Recently used' })),
-          ...rest.map((x) => ({ x, group: recentItems.length ? 'Other commands' : 'Commands' })),
+          ...recentItems.map((x) => ({ x, group: t('panels.palette.recent') })),
+          ...rest.map((x) => ({
+            x,
+            group: recentItems.length ? t('panels.palette.other') : t('panels.palette.commands'),
+          })),
         ].map(({ x, group }) => ({
           id: x.c.id,
           title: `${x.c.category}: ${x.c.title}`,
@@ -58,7 +62,7 @@
           id: c.id,
           title: `${c.category}: ${c.title}`,
           keys: c.keys,
-          group: 'Commands',
+          group: t('panels.palette.commands'),
           run: c.run,
         }));
     }
@@ -72,7 +76,7 @@
         id: e.path,
         title: e.name,
         hint: e.path.includes('/') ? e.path.slice(0, e.path.lastIndexOf('/')) : app.workspace.fs?.name,
-        group: 'Files',
+        group: t('panels.palette.files'),
         run: () => void app.workspace.openFile(e.path),
       }));
   });
@@ -121,7 +125,7 @@
   class="palette"
   role="dialog"
   aria-modal="true"
-  aria-label={isCommands ? 'Command palette' : 'Go to file'}
+  aria-label={isCommands ? t('panels.palette.aria') : t('panels.palette.goToFile')}
 >
   <input
     bind:this={input}
@@ -130,8 +134,8 @@
     aria-expanded="true"
     aria-controls="palette-list"
     aria-activedescendant={items[index] ? `pal-${index}` : undefined}
-    aria-label={isCommands ? 'Type a command' : 'Type a file name'}
-    placeholder={isCommands ? 'Type a command' : 'Search files by name (type > for commands)'}
+    aria-label={isCommands ? t('panels.palette.typeCommand') : t('panels.palette.typeFile')}
+    placeholder={isCommands ? t('panels.palette.typeCommand') : t('panels.palette.searchFiles')}
     spellcheck="false"
     autocomplete="off"
     {onkeydown}
@@ -158,10 +162,10 @@
     {:else}
       <li class="empty">
         {isCommands
-          ? 'No matching command'
+          ? t('panels.palette.noCommand')
           : app.workspace.fs
-            ? 'No matching file'
-            : 'Open a folder to find files'}
+            ? t('panels.palette.noFile')
+            : t('panels.palette.openFolder')}
       </li>
     {/each}
   </ul>

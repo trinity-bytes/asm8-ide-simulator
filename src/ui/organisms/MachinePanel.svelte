@@ -15,6 +15,7 @@
   import Segmented from '../atoms/Segmented.svelte';
   import FlagCell from '../molecules/FlagCell.svelte';
   import RegisterRow from '../molecules/RegisterRow.svelte';
+  import { t, tn } from '../i18n/i18n.svelte';
   import { AppController } from '../state/app.svelte';
   import type { RegisterKey } from '../state/session.svelte';
 
@@ -58,10 +59,11 @@
   function pointsTo(key: RegisterKey, v: number): string {
     if (key === 'IP') {
       const line = assembly?.addressToLine.get(v);
-      return line !== undefined ? `line ${line + 1}` : '';
+      return line !== undefined ? t('shell.machine.line', { line: line + 1 }) : '';
     }
-    if (key === 'SP') return stackSize === 0 ? 'stack empty' : `${stackSize} on stack`;
-    if (v >= DISPLAY_START) return `0x${hex(v)}  display`;
+    if (key === 'SP')
+      return stackSize === 0 ? t('shell.machine.stackEmpty') : t('shell.machine.onStack', { n: stackSize });
+    if (v >= DISPLAY_START) return `0x${hex(v)}  ${t('shell.machine.display')}`;
     const label = Object.entries(assembly?.labels ?? {}).find(([, a]) => a === v)?.[0];
     const cell = mem[v] ?? 0;
     if (label) return `${label}  '${charOf(cell)}'`;
@@ -77,7 +79,12 @@
         key,
         value: fmt(v, base),
         second: base === 'dec' ? `0x${hex(v)}` : base === 'bin' ? `0x${hex(v)}` : String(v),
-        note: base === 'bin' ? (s.changedAt[key] ? `step ${s.changedAt[key]}` : '') : pointsTo(key, v),
+        note:
+          base === 'bin'
+            ? s.changedAt[key]
+              ? t('shell.machine.step', { n: s.changedAt[key] })
+              : ''
+            : pointsTo(key, v),
         changed,
       };
     }),
@@ -124,7 +131,7 @@
         ? parseInt(raw, 2)
         : parseInt(raw, 10);
     if (Number.isNaN(v) || v < 0 || v > 255) {
-      app.ui.toast('Enter a byte: 0–255, 0x00–0xFF or 01010101b', 'negative');
+      app.ui.toast(t('shell.machine.badByte'), 'negative');
       return;
     }
     s.poke(selected, v);
@@ -142,56 +149,71 @@
   }
 </script>
 
-<section class="machine" class:embedded aria-label="Machine">
+<section class="machine" class:embedded aria-label={t('shell.machine.title')}>
   <header class="head">
-    {#if !embedded}<h2>Machine</h2>{/if}
+    {#if !embedded}<h2>{t('shell.machine.title')}</h2>{/if}
     <Segmented
       look="tabs"
-      label="Number base"
+      label={t('shell.machine.base')}
       value={base}
       options={BASES}
       onchange={(v) => app.settings.set('numberBase', v)}
     />
-    {#if onclose}<IconButton icon="close" label="Hide machine" size="touch" onclick={onclose} />{/if}
+    {#if onclose}<IconButton
+        icon="close"
+        label={t('shell.machine.hide')}
+        size="touch"
+        onclick={onclose}
+      />{/if}
   </header>
 
-  <div class="card regs" role="group" aria-label="Registers">
+  <div class="card regs" role="group" aria-label={t('shell.machine.registers')}>
     <div class="cols">
-      <span>Register</span><span>Value</span><span class="r">{base === 'hex' ? 'Dec' : 'Hex'}</span><span
-        class="r">{base === 'bin' ? 'Changed' : 'Points to'}</span
-      >
+      <span>{t('shell.machine.register')}</span><span>{t('shell.machine.value')}</span><span class="r"
+        >{base === 'hex' ? 'Dec' : 'Hex'}</span
+      ><span class="r">{base === 'bin' ? t('shell.machine.changed') : t('shell.machine.pointsTo')}</span>
     </div>
     {#each rows as r (r.key)}
       <RegisterRow name={r.key} value={r.value} second={r.second} note={r.note} changed={r.changed} />
     {/each}
   </div>
 
-  <div class="card flags" role="group" aria-label="Flags">
-    <FlagCell name="Zero" on={regs.zero} />
-    <FlagCell name="Carry" on={regs.carry} />
-    <FlagCell name="Fault" on={regs.fault} />
+  <div class="card flags" role="group" aria-label={t('shell.machine.flags')}>
+    <FlagCell name={t('shell.machine.zero')} on={regs.zero} />
+    <FlagCell name={t('shell.machine.carry')} on={regs.carry} />
+    <FlagCell name={t('shell.machine.fault')} on={regs.fault} />
   </div>
 
   {#if stack.length}
-    <div class="card stack" role="group" aria-label="Stack">
+    <div class="card stack" role="group" aria-label={t('shell.machine.stack')}>
       <div class="card-head">
-        <span>Stack</span><span class="muted mono"
-          >{stackSize} byte{stackSize === 1 ? '' : 's'} · SP 0x{hex(regs.sp)}</span
+        <span>{t('shell.machine.stack')}</span><span class="muted mono"
+          >{tn('shell.machine.stackBytes', stackSize, { sp: hex(regs.sp) })}</span
         >
       </div>
       {#each stack as e (e.address)}
         <div class="srow mono">
           <span class="muted">0x{hex(e.address)}</span>
           <span>{fmt(e.value, base)}</span>
-          <span class="who">{e.returnTo !== undefined ? `return to 0x${hex(e.returnTo)}` : 'pushed'}</span>
-          <span class="muted r">{e.pushedBy !== undefined ? `line ${e.pushedBy + 1}` : ''}</span>
+          <span class="who"
+            >{e.returnTo !== undefined
+              ? t('shell.machine.returnTo', { address: hex(e.returnTo) })
+              : t('shell.machine.pushed')}</span
+          >
+          <span class="muted r"
+            >{e.pushedBy !== undefined ? t('shell.machine.line', { line: e.pushedBy + 1 }) : ''}</span
+          >
         </div>
       {/each}
     </div>
   {/if}
 
-  <div class="card memory" role="group" aria-label="Memory">
-    <div class="card-head"><span>Memory</span><span class="muted">{MEMORY_SIZE} bytes</span></div>
+  <div class="card memory" role="group" aria-label={t('shell.machine.memory')}>
+    <div class="card-head">
+      <span>{t('shell.machine.memory')}</span><span class="muted"
+        >{t('shell.machine.memoryBytes', { n: MEMORY_SIZE })}</span
+      >
+    </div>
     <div class="bar" aria-hidden="true">
       <span class="code" style:width="{(codeSize / MEMORY_SIZE) * 100}%"></span>
       <span class="free"></span>
@@ -199,11 +221,11 @@
       <span class="disp" style:width="{((MEMORY_SIZE - DISPLAY_START) / MEMORY_SIZE) * 100}%"></span>
     </div>
     <div class="legend mono">
-      <span><i class="code"></i>Code {codeSize} B</span>
-      <span><i class="stk"></i>Stack 0x{hex(regs.sp)}</span>
-      <span><i class="disp"></i>Display 24 B</span>
+      <span><i class="code"></i>{t('shell.machine.legendCode', { n: codeSize })}</span>
+      <span><i class="stk"></i>{t('shell.machine.legendStack', { sp: hex(regs.sp) })}</span>
+      <span><i class="disp"></i>{t('shell.machine.legendDisplay')}</span>
     </div>
-    <div class="grid mono" role="grid" aria-label="Memory bytes, 16 per row" aria-rowcount={16}>
+    <div class="grid mono" role="grid" aria-label={t('shell.machine.grid')} aria-rowcount={16}>
       <div class="gh" role="row">
         <span></span>
         {#each Array(16) as _, c (c)}<span role="columnheader">{c.toString(16).toUpperCase()}</span>{/each}
@@ -219,9 +241,9 @@
               data-addr={i}
               class={cellClass(i)}
               tabindex={i === (selected ?? 0) ? 0 : -1}
-              aria-label="{cellText(i)}, address 0x{hex(i)}{i === regs.ip ? ', IP' : ''}{i === regs.sp
-                ? ', SP'
-                : ''}"
+              aria-label="{t('shell.machine.cell', { text: cellText(i), address: hex(i) })}{i === regs.ip
+                ? ', IP'
+                : ''}{i === regs.sp ? ', SP' : ''}"
               onclick={() => select(i)}
               onkeydown={(e) => gridKey(e, i)}
             >
@@ -232,24 +254,28 @@
       {/each}
     </div>
     <p class="key mono">
-      <span>Blue outline · IP 0x{hex(regs.ip)}</span><span>Dashed · SP 0x{hex(regs.sp)}</span>
+      <span>{t('shell.machine.keyIp', { ip: hex(regs.ip) })}</span><span
+        >{t('shell.machine.keySp', { sp: hex(regs.sp) })}</span
+      >
     </p>
 
     {#if selected !== null}
       {@const v = mem[selected] ?? 0}
-      <div class="pop" role="dialog" aria-label="Memory cell 0x{hex(selected)}">
+      <div class="pop" role="dialog" aria-label={t('shell.machine.cellDialog', { address: hex(selected) })}>
         <div class="pop-head">
           <strong class="mono">0x{hex(selected)}</strong>
           <span class="muted"
             >{selected >= DISPLAY_START
-              ? 'display'
+              ? t('shell.machine.regionDisplay')
               : selected <= MAX_SP && selected > regs.sp
-                ? 'stack'
+                ? t('shell.machine.regionStack')
                 : selected < codeSize
-                  ? 'program'
-                  : 'free'}</span
+                  ? t('shell.machine.regionProgram')
+                  : t('shell.machine.regionFree')}</span
           >
-          <button type="button" class="x" aria-label="Close" onclick={() => (selected = null)}>×</button>
+          <button type="button" class="x" aria-label={t('common.close')} onclick={() => (selected = null)}
+            >×</button
+          >
         </div>
         <dl class="mono">
           <dt>Hex</dt>
@@ -258,7 +284,7 @@
           <dd>{v}</dd>
           <dt>Bin</dt>
           <dd>{bin(v)}</dd>
-          <dt>Char</dt>
+          <dt>{t('shell.machine.char')}</dt>
           <dd>{v >= 32 && v < 127 ? `'${String.fromCharCode(v)}'` : '—'}</dd>
         </dl>
         {#if canEdit}
@@ -269,11 +295,15 @@
               commitEdit();
             }}
           >
-            <input class="mono" bind:value={editValue} aria-label="New value for 0x{hex(selected)}" />
-            <Button size="sm" type="submit">Set</Button>
+            <input
+              class="mono"
+              bind:value={editValue}
+              aria-label={t('shell.machine.newValue', { address: hex(selected) })}
+            />
+            <Button size="sm" type="submit">{t('shell.machine.set')}</Button>
           </form>
         {:else}
-          <p class="muted small">Pause the program to edit memory.</p>
+          <p class="muted small">{t('shell.machine.pauseToEdit')}</p>
         {/if}
       </div>
     {/if}

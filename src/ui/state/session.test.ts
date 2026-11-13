@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { InlineRunner } from '@adapters/runner/inline-runner';
+import { i18n } from '../i18n/i18n.svelte';
 import { SessionState } from './session.svelte';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -116,5 +117,29 @@ describe('SessionState', () => {
     await until(() => s.snapshot?.steps === 3);
     expect(s.console.filter((e) => e.text.startsWith('assemble'))).toHaveLength(1);
     s.dispose();
+  });
+
+  it('shows console notices and faults in Spanish and switches back to English', async () => {
+    i18n.locale = 'es';
+    try {
+      const s = new SessionState(new InlineRunner());
+      s.speed = 'max';
+      s.run('f.asm', 'MOV A, 0\nDIV A\nHLT');
+      await until(() => s.state === 'fault');
+      expect(s.console.map((e) => e.text)).toEqual([
+        'ensamblar f.asm',
+        '6 bytes · 0 etiquetas · 0 problemas',
+        'Ejecución iniciada a Max',
+        'División entre 0 en 0x03 (línea 2)',
+      ]);
+      expect(s.snapshot?.fault).toBe('División entre 0');
+      expect(s.lastStop).toEqual({ kind: 'fault', message: 'División entre 0' });
+      i18n.locale = 'en';
+      expect(s.console.at(-1)?.text).toBe('Division by 0 at 0x03 (line 2)');
+      expect(s.snapshot?.fault).toBe('Division by 0');
+      s.dispose();
+    } finally {
+      i18n.locale = 'en';
+    }
   });
 });

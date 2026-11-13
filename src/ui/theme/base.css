@@ -46,7 +46,8 @@ body {
 }
 
 #app {
-  height: 100dvh;
+  /* --app-h: visible height while the on-screen keyboard is open (see ui/viewport.ts). */
+  height: var(--app-h, 100dvh);
 }
 
 button,

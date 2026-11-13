@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import EditorTab from '../../molecules/EditorTab.svelte';
   import EditorPane from './EditorPane.svelte';
@@ -19,20 +20,24 @@
     e.preventDefault();
     const tab = ws.tabs.find((t) => t.id === id);
     app.ui.openMenu(e.clientX, e.clientY, [
-      { label: 'Close', shortcut: 'Alt+W', run: () => void app.closeTab(id) },
-      { label: 'Close others', disabled: ws.tabs.length < 2, run: () => void app.closeOthers(id) },
+      { label: t('common.close'), shortcut: 'Alt+W', run: () => void app.closeTab(id) },
+      {
+        label: t('editor.group.closeOthers'),
+        disabled: ws.tabs.length < 2,
+        run: () => void app.closeOthers(id),
+      },
       ...(tab?.kind === 'file'
         ? [
             'separator' as const,
             {
-              label: 'Reveal in explorer',
+              label: t('editor.group.reveal'),
               run: () => {
                 app.ui.sideView = 'explorer';
                 const parts = tab.key.split('/');
                 for (let i = 1; i < parts.length; i++) ws.expanded[parts.slice(0, i).join('/')] = true;
               },
             },
-            { label: 'Download', run: () => ws.download(id) },
+            { label: t('editor.group.download'), run: () => ws.download(id) },
           ]
         : []),
     ]);
@@ -49,9 +54,9 @@
   }
 </script>
 
-<section class="group" aria-label="Editor">
+<section class="group" aria-label={t('editor.group.label')}>
   {#if showTabs && ws.tabs.length}
-    <div class="tabs" role="tablist" aria-label="Open files" tabindex="-1" {onkeydown}>
+    <div class="tabs" role="tablist" aria-label={t('editor.group.openFiles')} tabindex="-1" {onkeydown}>
       {#each ws.tabs as t, i (t.id)}
         <EditorTab
           id={t.id}

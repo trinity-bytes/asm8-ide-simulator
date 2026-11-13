@@ -1,49 +1,57 @@
 <script lang="ts">
   import { EXAMPLES } from '@app/workspace/examples';
+  import { EXAMPLE_TEXT } from '../../i18n/examples';
   import Icon from '../../atoms/Icon.svelte';
   import Kbd from '../../atoms/Kbd.svelte';
+  import { i18n, t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
   const ws = app.workspace;
-  const ago = (t: number) => {
-    const days = Math.floor((Date.now() - t) / 86_400_000);
-    return days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+  const ago = (time: number) => {
+    const days = Math.floor((Date.now() - time) / 86_400_000);
+    return days <= 0
+      ? t('editor.welcome.today')
+      : days === 1
+        ? t('editor.welcome.yesterday')
+        : t('editor.welcome.daysAgo', { n: days });
   };
 </script>
 
 <div class="welcome">
   <div class="inner">
     <h1>Asm8</h1>
-    <p class="lead">A simulator for an 8-bit CPU. Write assembly, run it, watch every byte.</p>
+    <p class="lead">{t('editor.welcome.lead')}</p>
     <div class="cols">
       <section>
-        <h2>Start</h2>
+        <h2>{t('editor.welcome.start')}</h2>
         <ul>
           <li>
             <button type="button" onclick={() => app.openFolder()}
-              ><Icon name="folder" />{app.canOpenFolders ? 'Open folder…' : 'Browser workspace'}</button
+              ><Icon name="folder" />{app.canOpenFolders
+                ? t('editor.welcome.openFolder')
+                : t('editor.welcome.browserWorkspace')}</button
             ><Kbd keys="Ctrl+K O" />
           </li>
           <li>
-            <button type="button" onclick={() => ws.importFiles()}><Icon name="file" />Open file…</button><Kbd
-              keys="Ctrl+O"
-            />
+            <button type="button" onclick={() => ws.importFiles()}
+              ><Icon name="file" />{t('editor.welcome.openFile')}</button
+            ><Kbd keys="Ctrl+O" />
           </li>
           <li>
-            <button type="button" onclick={() => app.newFile()}><Icon name="newFile" />New file</button><Kbd
-              keys="Alt+N"
-            />
+            <button type="button" onclick={() => app.newFile()}
+              ><Icon name="newFile" />{t('editor.welcome.newFile')}</button
+            ><Kbd keys="Alt+N" />
           </li>
           <li>
             <button type="button" onclick={() => (app.ui.overlay = { kind: 'shortcuts' })}
-              ><Icon name="keyboard" />Keyboard shortcuts</button
+              ><Icon name="keyboard" />{t('editor.welcome.shortcuts')}</button
             ><Kbd keys="Ctrl+K S" />
           </li>
         </ul>
       </section>
       <section>
-        <h2>Recent</h2>
+        <h2>{t('editor.welcome.recent')}</h2>
         <ul>
           {#each ws.recents as r (r.id)}
             <li>
@@ -51,18 +59,18 @@
               ><span class="meta">{ago(r.openedAt)}</span>
             </li>
           {:else}
-            <li class="none">Folders you open appear here.</li>
+            <li class="none">{t('editor.welcome.noRecent')}</li>
           {/each}
         </ul>
       </section>
       <section>
-        <h2>Examples</h2>
+        <h2>{t('editor.welcome.examples')}</h2>
         <ul>
           {#each EXAMPLES as e (e.file)}
             <li>
               <button type="button" onclick={() => app.openExample(e.file)}
                 ><Icon name="reference" />{e.file}</button
-              ><span class="meta">{e.summary}</span>
+              ><span class="meta">{EXAMPLE_TEXT[e.file]?.[i18n.locale].title ?? e.summary}</span>
             </li>
           {/each}
         </ul>
@@ -71,14 +79,14 @@
     <p class="foot">
       <Icon name="install" size={14} />
       {#if app.installAvailable}
-        Works offline after the first visit. <button type="button" class="link" onclick={() => app.install()}
-          >Install Asm8</button
-        > to open .asm files from your file manager.
+        {t('editor.welcome.offline')}
+        <button type="button" class="link" onclick={() => app.install()}>{t('editor.welcome.install')}</button
+        >
+        {t('editor.welcome.installTail')}
       {:else if app.installed}
-        Installed. Asm8 works offline.
+        {t('editor.welcome.installed')}
       {:else}
-        Works offline after the first visit. Install it from the browser menu to open .asm files from your
-        file manager.
+        {t('editor.welcome.installFromMenu')}
       {/if}
     </p>
   </div>

@@ -4,6 +4,7 @@
   import IconButton from '../../atoms/IconButton.svelte';
   import ExplorerRow from '../../molecules/ExplorerRow.svelte';
   import SectionHeader from '../../molecules/SectionHeader.svelte';
+  import { t, tn } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import type { FileEntry } from '@app/workspace/file-system';
 
@@ -18,7 +19,7 @@
   const ws = app.workspace;
   let renameError = $state<string | null>(null);
 
-  const title = $derived(ws.fs ? ws.fs.name : 'Explorer');
+  const title = $derived(ws.fs ? ws.fs.name : t('panels.explorer.title'));
   const labels = $derived(Object.entries(app.activeAssembly?.labels ?? {}));
   const breakpoints = $derived(
     Object.entries(app.session.breakpoints).flatMap(([path, list]) => list.map((b) => ({ path, ...b }))),
@@ -58,17 +59,21 @@
     if (!ws.fs) return;
     const dir = e ? (e.kind === 'directory' ? e.path : e.path.split('/').slice(0, -1).join('/')) : '';
     app.ui.openMenu(ev.clientX, ev.clientY, [
-      { label: 'New file', run: () => void app.newFile(dir) },
-      { label: 'New folder', run: () => void app.newFolder(dir) },
+      { label: t('panels.explorer.newFile'), run: () => void app.newFile(dir) },
+      { label: t('panels.explorer.newFolder'), run: () => void app.newFolder(dir) },
       ...(e
         ? ([
             'separator',
-            { label: 'Rename', shortcut: 'F2', run: () => ((ws.renaming = e.path), (renameError = null)) },
+            {
+              label: t('panels.explorer.rename'),
+              shortcut: 'F2',
+              run: () => ((ws.renaming = e.path), (renameError = null)),
+            },
             ...(e.kind === 'file'
               ? [
-                  { label: 'Duplicate', run: () => void ws.duplicate(e.path) },
+                  { label: t('panels.explorer.duplicate'), run: () => void ws.duplicate(e.path) },
                   {
-                    label: 'Download',
+                    label: t('panels.explorer.download'),
                     run: async () => {
                       const content = await ws.fs?.read(e.path);
                       if (content) ws.provider.download(e.name, content.text);
@@ -78,7 +83,7 @@
               : []),
             'separator',
             {
-              label: 'Delete',
+              label: t('panels.explorer.delete'),
               danger: true,
               shortcut: 'Delete',
               run: () => void app.deletePath(e.path, e.kind === 'directory'),
@@ -99,32 +104,48 @@
   }
 </script>
 
-<section class="view" aria-label="Explorer">
+<section class="view" aria-label={t('panels.explorer.title')}>
   <SectionHeader {title} id="explorer-title">
     {#snippet actions()}
       {#if ws.fs && !ws.needsAccess}
-        <IconButton icon="newFile" label="New file" size="sm" onclick={() => app.newFile()} />
-        <IconButton icon="newFolder" label="New folder" size="sm" onclick={() => app.newFolder()} />
-        <IconButton icon="refresh" label="Refresh" size="sm" onclick={() => ws.refresh()} />
+        <IconButton
+          icon="newFile"
+          label={t('panels.explorer.newFile')}
+          size="sm"
+          onclick={() => app.newFile()}
+        />
+        <IconButton
+          icon="newFolder"
+          label={t('panels.explorer.newFolder')}
+          size="sm"
+          onclick={() => app.newFolder()}
+        />
+        <IconButton
+          icon="refresh"
+          label={t('panels.explorer.refresh')}
+          size="sm"
+          onclick={() => ws.refresh()}
+        />
       {/if}
     {/snippet}
   </SectionHeader>
 
   {#if !ws.fs}
     <div class="empty">
-      <p>No folder open. Asm8 edits the .asm files on your disk directly; nothing is uploaded.</p>
+      <p>{t('panels.explorer.noFolder')}</p>
       <Button variant="primary" block onclick={() => app.openFolder()}>
-        {app.canOpenFolders ? 'Open folder' : 'Open browser workspace'}
+        {app.canOpenFolders ? t('panels.explorer.openFolder') : t('panels.explorer.openBrowser')}
       </Button>
-      <Button block onclick={() => app.newFile()}>New file</Button>
+      <Button block onclick={() => app.newFile()}>{t('panels.explorer.newFile')}</Button>
     </div>
   {:else if ws.needsAccess}
     <div class="empty">
       <p>
-        Asm8 needs permission again to read and save <strong>{ws.fs.name}</strong>. Installed apps keep
-        access.
+        {t('panels.explorer.access1')} <strong>{ws.fs.name}</strong>{t('panels.explorer.access2')}
       </p>
-      <Button variant="primary" block onclick={() => ws.allowAccess()}>Allow access again</Button>
+      <Button variant="primary" block onclick={() => ws.allowAccess()}
+        >{t('panels.explorer.allowAccess')}</Button
+      >
     </div>
   {:else}
     <div
@@ -154,18 +175,18 @@
           />
         </div>
       {:else}
-        <p class="hint">This folder has no files yet. Create one with New file.</p>
+        <p class="hint">{t('panels.explorer.emptyFolder')}</p>
       {/each}
     </div>
     {#if ws.fs.kind === 'browser'}
-      <p class="note">Browser workspace: files live in this browser. Use Download to keep a copy.</p>
+      <p class="note">{t('panels.explorer.browserNote')}</p>
     {:else if ws.fs.kind === 'examples'}
-      <p class="note">Examples are kept in memory. Open a folder to save your own programs.</p>
+      <p class="note">{t('panels.explorer.examplesNote')}</p>
     {/if}
   {/if}
 
   {#if labels.length}
-    <SectionHeader title="Outline" meta="{labels.length} label{labels.length === 1 ? '' : 's'}" />
+    <SectionHeader title={t('panels.explorer.outline')} meta={tn('panels.explorer.labels', labels.length)} />
     <ul class="list">
       {#each labels as [name, address] (name)}
         <li>
@@ -179,7 +200,7 @@
   {/if}
 
   {#if breakpoints.length}
-    <SectionHeader title="Breakpoints" meta={String(breakpoints.length)} />
+    <SectionHeader title={t('panels.explorer.breakpoints')} meta={String(breakpoints.length)} />
     <ul class="list">
       {#each breakpoints as b (`${b.path}:${b.line}`)}
         <li>

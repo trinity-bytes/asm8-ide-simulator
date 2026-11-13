@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../i18n/i18n.svelte';
+
   interface Props {
     name: string;
     value: string;
@@ -15,7 +17,7 @@
   <span class="value mono">{value}</span>
   <span class="second mono">{second}</span>
   <span class="note mono">{note}</span>
-  {#if changed}<span class="sr-only">changed</span>{/if}
+  {#if changed}<span class="sr-only">{t('shell.register.changed')}</span>{/if}
 </button>
 
 <style>

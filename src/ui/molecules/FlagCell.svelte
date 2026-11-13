@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { t } from '../i18n/i18n.svelte';
+
   interface Props {
     name: string;
     on: boolean;
@@ -9,7 +11,9 @@
 
 <div class="flag" class:changed>
   <span class="name">{name}</span>
-  <span class="value mono" aria-label="{name} {on ? 'set' : 'clear'}">{on ? 1 : 0}</span>
+  <span class="value mono" aria-label={t(on ? 'shell.flag.set' : 'shell.flag.clear', { name })}
+    >{on ? 1 : 0}</span
+  >
 </div>
 
 <style>

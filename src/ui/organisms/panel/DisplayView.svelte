@@ -1,5 +1,6 @@
 <script lang="ts">
   import { DISPLAY_SIZE, DISPLAY_START, hex } from '@core/index';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -11,7 +12,11 @@
 </script>
 
 <div class="display">
-  <div class="screen" role="img" aria-label="Display: {text || 'empty'}">
+  <div
+    class="screen"
+    role="img"
+    aria-label={t('panels.display.aria', { text: text || t('panels.display.empty') })}
+  >
     {#each cells as b, i (i)}
       <div class="cell" class:empty={b === 0}>
         <span class="ch mono">{b >= 32 && b < 127 ? String.fromCharCode(b) : b === 0 ? '·' : '?'}</span>
@@ -20,9 +25,9 @@
     {/each}
   </div>
   <p class="note">
-    Memory-mapped display: bytes 0xE8–0xFF. Write a character code there, e.g. <code class="mono"
-      >MOV [232], 'H'</code
-    >. For longer output use <code class="mono">OUT</code> and the console.
+    {t('panels.display.note1')} <code class="mono">MOV [232], 'H'</code>{t('panels.display.note2')}
+    <code class="mono">OUT</code>
+    {t('panels.display.note3')}
   </p>
 </div>
 
