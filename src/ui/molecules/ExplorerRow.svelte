@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../atoms/Icon.svelte';
+  import { t } from '../i18n/i18n.svelte';
 
   interface Props {
     name: string;
@@ -54,7 +55,7 @@
       bind:value={draft}
       class="rename"
       class:invalid={renameError}
-      aria-label="New name for {name}"
+      aria-label={t('shell.explorer.newName', { name })}
       aria-invalid={renameError ? true : undefined}
       spellcheck="false"
       onkeydown={(e) => {

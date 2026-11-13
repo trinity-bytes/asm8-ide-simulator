@@ -3,6 +3,7 @@
   import Button from '../atoms/Button.svelte';
   import Icon from '../atoms/Icon.svelte';
   import IconButton from '../atoms/IconButton.svelte';
+  import { t } from '../i18n/i18n.svelte';
   import { AppController } from '../state/app.svelte';
 
   interface Props {
@@ -17,9 +18,10 @@
   const size = $derived(touch ? 'lg' : 'md');
 
   const primary = $derived.by(() => {
-    if (s.running) return { label: 'Pause', icon: 'pause' as const };
-    if (s.state === 'paused' || s.state === 'waiting') return { label: 'Continue', icon: 'play' as const };
-    return { label: 'Run', icon: 'play' as const };
+    if (s.running) return { label: t('shell.run.pause'), icon: 'pause' as const };
+    if (s.state === 'paused' || s.state === 'waiting')
+      return { label: t('shell.run.continue'), icon: 'play' as const };
+    return { label: t('shell.run.run'), icon: 'play' as const };
   });
   const canRun = $derived(app.workspace.currentFile !== null || s.program !== null);
   const canReset = $derived(s.state !== 'empty' && s.state !== 'ready');
@@ -30,7 +32,7 @@
       r.left,
       r.bottom + 4,
       SPEEDS.map((sp) => ({
-        label: `${speedLabel(sp)}${sp === 'max' ? ' · screen every 100 ms' : ''}`,
+        label: `${speedLabel(sp)}${sp === 'max' ? t('shell.run.maxNote') : ''}`,
         checked: s.speed === sp,
         run: () => app.setSpeed(sp),
       })),
@@ -38,21 +40,28 @@
   }
 </script>
 
-<div class="controls" role="toolbar" aria-label="Run controls">
+<div class="controls" role="toolbar" aria-label={t('shell.run.controls')}>
   <Button variant="primary" {size} icon={primary.icon} disabled={!canRun} onclick={() => app.toggleRun()}>
     {primary.label}
   </Button>
   {#if !minimal}
-    <Button {size} icon="step" disabled={!canRun || s.running} onclick={() => app.step()}>Step</Button>
-    <Button {size} icon="reset" disabled={!canReset} onclick={() => app.reset()}>Reset</Button>
-    <Button {size} onclick={openSpeedMenu} aria-haspopup="menu" aria-label="Speed {speedLabel(s.speed)}">
-      {touch ? speedLabel(s.speed) : `Speed ${speedLabel(s.speed)}`}
+    <Button {size} icon="step" disabled={!canRun || s.running} onclick={() => app.step()}
+      >{t('shell.run.step')}</Button
+    >
+    <Button {size} icon="reset" disabled={!canReset} onclick={() => app.reset()}>{t('common.reset')}</Button>
+    <Button
+      {size}
+      onclick={openSpeedMenu}
+      aria-haspopup="menu"
+      aria-label={t('shell.run.speed', { speed: speedLabel(s.speed) })}
+    >
+      {touch ? speedLabel(s.speed) : t('shell.run.speed', { speed: speedLabel(s.speed) })}
       <Icon name="chevronDown" size={14} />
     </Button>
   {:else}
     <IconButton
       icon="step"
-      label="Step"
+      label={t('shell.run.step')}
       size="touch"
       disabled={!canRun || s.running}
       onclick={() => app.step()}

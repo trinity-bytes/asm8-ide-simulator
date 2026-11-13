@@ -4,6 +4,7 @@
   import Icon from '../atoms/Icon.svelte';
   import IconButton from '../atoms/IconButton.svelte';
   import type { IconName } from '../atoms/icons';
+  import { t, tn, type MessageKey } from '../i18n/i18n.svelte';
   import EditorGroup from '../organisms/editor/EditorGroup.svelte';
   import MachinePanel from '../organisms/MachinePanel.svelte';
   import ConsoleView from '../organisms/panel/ConsoleView.svelte';
@@ -22,12 +23,13 @@
   let more = $state<'menu' | 'search' | 'reference' | 'debug' | 'problems'>('menu');
   let editing = $state(false);
 
-  const NAV: { id: PhoneRegion; label: string; icon: IconName }[] = [
-    { id: 'code', label: 'Code', icon: 'file' },
-    { id: 'machine', label: 'Machine', icon: 'cpu' },
-    { id: 'console', label: 'Console', icon: 'console' },
-    { id: 'files', label: 'Files', icon: 'explorer' },
-    { id: 'more', label: 'More', icon: 'more' },
+  // Labels are message keys, translated at render so they follow the language setting.
+  const NAV: { id: PhoneRegion; label: MessageKey; icon: IconName }[] = [
+    { id: 'code', label: 'shell.nav.code', icon: 'file' },
+    { id: 'machine', label: 'shell.nav.machine', icon: 'cpu' },
+    { id: 'console', label: 'shell.nav.console', icon: 'console' },
+    { id: 'files', label: 'shell.nav.files', icon: 'explorer' },
+    { id: 'more', label: 'shell.nav.more', icon: 'more' },
   ];
 
   const title = $derived(ws.active?.title ?? 'Asm8');
@@ -35,25 +37,29 @@
     const snap = s.snapshot;
     switch (s.state) {
       case 'running':
-        return `Running · step ${snap?.steps ?? 0}`;
+        return t('shell.state.runningStep', { n: snap?.steps ?? 0 });
       case 'waiting':
-        return 'Waiting for a key · port 0x00';
+        return t('shell.state.waitingKey');
       case 'paused':
-        return `Paused at line ${(snap?.line ?? 0) + 1} · step ${snap?.steps ?? 0}`;
+        return t('shell.state.pausedLine', { line: (snap?.line ?? 0) + 1, n: snap?.steps ?? 0 });
       case 'halted':
-        return `Halted · ${snap?.steps ?? 0} steps`;
+        return tn('shell.state.haltedSteps', snap?.steps ?? 0);
       case 'fault':
-        return `Error: ${snap?.fault ?? ''}`;
+        return t('shell.state.fault', { fault: snap?.fault ?? '' });
       default:
-        return ws.fs ? (ws.fs.kind === 'examples' ? 'Example' : 'Browser workspace') : 'No file open';
+        return ws.fs
+          ? ws.fs.kind === 'examples'
+            ? t('shell.state.example')
+            : t('shell.state.browserWorkspace')
+          : t('shell.state.noFile');
     }
   });
   const primary = $derived(
     s.running
-      ? { label: 'Pause', icon: 'pause' as const }
+      ? { label: t('shell.run.pause'), icon: 'pause' as const }
       : s.state === 'paused' || s.state === 'waiting'
-        ? { label: 'Continue', icon: 'play' as const }
-        : { label: 'Run', icon: 'play' as const },
+        ? { label: t('shell.run.continue'), icon: 'play' as const }
+        : { label: t('shell.run.run'), icon: 'play' as const },
   );
   const firstError = $derived(app.activeAssembly?.diagnostics.find((d) => d.severity === 'error'));
   const ACCESSORY = ['Tab', 'A', 'B', 'C', 'D', '[', ']', ',', 'MOV', 'CMP', 'JMP', 'JNZ'];
@@ -79,8 +85,8 @@
     const tab = ws.activeFile;
     if (!d?.fix || !tab) return;
     const lines = tab.text.split('\n');
-    const t = lines[d.line] ?? '';
-    lines[d.line] = t.slice(0, d.from) + d.fix.replacement + t.slice(d.to);
+    const text = lines[d.line] ?? '';
+    lines[d.line] = text.slice(0, d.from) + d.fix.replacement + text.slice(d.to);
     ws.updateText(tab.id, lines.join('\n'));
   }
 
@@ -96,7 +102,9 @@
       {@const active = ws.active}
       <IconButton
         icon={active.kind === 'file' ? 'close' : 'chevronLeft'}
-        label={active.kind === 'file' ? `Close ${active.title}` : 'Back to editor'}
+        label={active.kind === 'file'
+          ? t('shell.phone.closeFile', { title: active.title })
+          : t('shell.phone.backToEditor')}
         size="touch"
         onclick={() => app.closeTab(active.id)}
       />
@@ -114,7 +122,7 @@
     >
     <IconButton
       icon="step"
-      label="Step"
+      label={t('shell.run.step')}
       size="touch"
       disabled={s.running || (!ws.currentFile && !s.program)}
       onclick={() => app.step()}
@@ -136,57 +144,60 @@
           <ul>
             <li>
               <button type="button" onclick={() => (more = 'problems')}
-                ><Icon name="error" />Problems<span>{app.activeAssembly?.diagnostics.length ?? 0}</span
+                ><Icon name="error" />{t('shell.view.problems')}<span
+                  >{app.activeAssembly?.diagnostics.length ?? 0}</span
                 ></button
               >
             </li>
             <li>
               <button type="button" onclick={() => (more = 'debug')}
-                ><Icon name="debug" />Run and debug</button
+                ><Icon name="debug" />{t('shell.view.debug')}</button
               >
             </li>
             <li>
-              <button type="button" onclick={() => (more = 'search')}><Icon name="search" />Search</button>
+              <button type="button" onclick={() => (more = 'search')}
+                ><Icon name="search" />{t('shell.view.search')}</button
+              >
             </li>
             <li>
               <button type="button" onclick={() => (more = 'reference')}
-                ><Icon name="reference" />Instruction set</button
+                ><Icon name="reference" />{t('shell.view.reference')}</button
               >
             </li>
             <li>
               <button type="button" onclick={() => ((ui.phoneRegion = 'code'), app.openSettings())}
-                ><Icon name="settings" />Settings</button
+                ><Icon name="settings" />{t('shell.view.settings')}</button
               >
             </li>
             <li>
               <button type="button" onclick={() => (ui.overlay = { kind: 'themes' })}
-                ><Icon name="palette" />Color theme</button
+                ><Icon name="palette" />{t('shell.phone.colorTheme')}</button
               >
             </li>
             <li>
               <button type="button" onclick={() => ws.download()} disabled={!ws.activeFile}
-                ><Icon name="download" />Download file</button
+                ><Icon name="download" />{t('shell.phone.download')}</button
               >
             </li>
             <li>
               <button type="button" onclick={() => ws.importFiles()}
-                ><Icon name="upload" />Import files</button
+                ><Icon name="upload" />{t('shell.phone.import')}</button
               >
             </li>
             {#if app.installAvailable}<li>
                 <button type="button" onclick={() => app.install()}
-                  ><Icon name="install" />Install Asm8</button
+                  ><Icon name="install" />{t('shell.phone.install')}</button
                 >
               </li>{/if}
             <li>
               <button type="button" onclick={() => (ui.overlay = { kind: 'about' })}
-                ><Icon name="info" />About</button
+                ><Icon name="info" />{t('shell.phone.about')}</button
               >
             </li>
           </ul>
         {:else}
           <button type="button" class="back" onclick={() => (more = 'menu')}
-            ><Icon name="chevronRight" /> Back</button
+            ><Icon name="chevronRight" /> {t('common.back')}</button
           >
           {#if more === 'problems'}<ProblemsView />{:else if more === 'debug'}<DebugView
             />{:else if more === 'search'}<SearchView />{:else}<ReferenceView />{/if}
@@ -196,7 +207,7 @@
   </main>
 
   {#if ui.phoneRegion === 'code' && editing}
-    <div class="accessory" role="toolbar" aria-label="Insert">
+    <div class="accessory" role="toolbar" aria-label={t('shell.phone.insert')}>
       {#each ACCESSORY as k (k)}
         <button
           type="button"
@@ -207,35 +218,38 @@
       {/each}
     </div>
   {:else if s.state === 'paused' || (s.state === 'waiting' && ui.phoneRegion !== 'console')}
-    <div class="stepbar" role="toolbar" aria-label="Step controls">
-      <Button size="lg" icon="step" onclick={() => app.step()}>Step</Button>
-      <Button size="lg" icon="stepOver" onclick={() => app.step('stepOver')}>Over</Button>
-      <Button size="lg" icon="stepOut" onclick={() => app.step('stepOut')}>Out</Button>
-      <Button size="lg" icon="stop" onclick={() => s.stop()}>Stop</Button>
+    <div class="stepbar" role="toolbar" aria-label={t('shell.phone.stepControls')}>
+      <Button size="lg" icon="step" onclick={() => app.step()}>{t('shell.run.step')}</Button>
+      <Button size="lg" icon="stepOver" onclick={() => app.step('stepOver')}>{t('shell.run.over')}</Button>
+      <Button size="lg" icon="stepOut" onclick={() => app.step('stepOut')}>{t('shell.run.out')}</Button>
+      <Button size="lg" icon="stop" onclick={() => s.stop()}>{t('shell.run.stop')}</Button>
     </div>
   {:else if s.state === 'waiting' && ui.phoneRegion === 'console'}
-    <div class="keysbar"><Icon name="keyboard" /> Keys go to the program as you type</div>
+    <div class="keysbar"><Icon name="keyboard" /> {t('shell.phone.keysHint')}</div>
   {:else if firstError && ui.phoneRegion === 'code'}
     <div class="problem" role="alert">
       <Icon name="error" />
       <button type="button" class="msg" onclick={() => app.editor?.gotoLine(firstError.line)}
-        >Line {firstError.line + 1}: {firstError.message}</button
+        >{t('shell.phone.problemLine', { line: firstError.line + 1, message: firstError.message })}</button
       >
       {#if firstError.fix}<Button size="lg" variant="primary" onclick={applyFix}
-          >Fix: {firstError.fix.replacement}</Button
+          >{t('shell.phone.fix', { fix: firstError.fix.replacement })}</Button
         >{/if}
     </div>
   {:else if s.state === 'fault'}
     <div class="problem" role="alert">
       <Icon name="error" />
       <span class="msg"
-        >{s.snapshot?.fault} at 0x{hex(s.snapshot?.faultAddress ?? s.snapshot?.registers.ip ?? 0)}</span
+        >{t('shell.phone.faultAt', {
+          fault: s.snapshot?.fault ?? '',
+          address: hex(s.snapshot?.faultAddress ?? s.snapshot?.registers.ip ?? 0),
+        })}</span
       >
-      <Button size="lg" onclick={() => app.reset()}>Reset</Button>
+      <Button size="lg" onclick={() => app.reset()}>{t('common.reset')}</Button>
     </div>
   {/if}
 
-  <nav class="bottom" aria-label="Sections">
+  <nav class="bottom" aria-label={t('shell.nav.label')}>
     {#each NAV as n (n.id)}
       <button
         type="button"
@@ -243,7 +257,7 @@
         onclick={() => go(n.id)}
       >
         <Icon name={n.icon} size={20} />
-        <span>{n.label}</span>
+        <span>{t(n.label)}</span>
       </button>
     {/each}
   </nav>
@@ -251,14 +265,22 @@
   {#if ui.lineSheet !== null}
     {@const line = ui.lineSheet}
     <div class="scrim" role="presentation" onclick={() => (ui.lineSheet = null)}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label="Line {line + 1} actions">
+    <div
+      class="sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('shell.sheet.label', { line: line + 1 })}
+    >
       <p class="sheet-title mono">
-        Line {line + 1} · {(ws.activeFile?.text.split('\n')[line] ?? '').split(';')[0]?.trim()}
+        {t('shell.sheet.title', {
+          line: line + 1,
+          code: (ws.activeFile?.text.split('\n')[line] ?? '').split(';')[0]?.trim() ?? '',
+        })}
       </p>
       <button type="button" onclick={() => (app.toggleBreakpoint(line), (ui.lineSheet = null))}>
         {s.breakpointsFor(ws.activeFile?.key ?? '').some((b) => b.line === line)
-          ? 'Remove breakpoint'
-          : 'Add breakpoint'}
+          ? t('shell.sheet.removeBreakpoint')
+          : t('shell.sheet.addBreakpoint')}
       </button>
       <button
         type="button"
@@ -270,7 +292,7 @@
             more = 'debug';
           }
           ui.lineSheet = null;
-        }}>Breakpoint with condition…</button
+        }}>{t('shell.sheet.conditional')}</button
       >
       <button
         type="button"
@@ -292,17 +314,17 @@
               });
             });
           }
-        }}>Run to this line</button
+        }}>{t('shell.sheet.runToLine')}</button
       >
       <button
         type="button"
         onclick={() => {
           void navigator.clipboard?.writeText(ws.activeFile?.text.split('\n')[line] ?? '');
           ui.lineSheet = null;
-          ui.toast('Line copied');
-        }}>Copy line</button
+          ui.toast(t('shell.sheet.copied'));
+        }}>{t('shell.sheet.copyLine')}</button
       >
-      <Button size="lg" block onclick={() => (ui.lineSheet = null)}>Cancel</Button>
+      <Button size="lg" block onclick={() => (ui.lineSheet = null)}>{t('common.cancel')}</Button>
     </div>
   {/if}
 </div>
