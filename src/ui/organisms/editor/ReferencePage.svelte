@@ -1,6 +1,8 @@
 <script lang="ts">
   import { findInstruction, GROUP_ORDER, hex, INSTRUCTIONS } from '@core/index';
   import Button from '../../atoms/Button.svelte';
+  import { i18n, t, tn } from '../../i18n/i18n.svelte';
+  import { groupLabel, instructionText } from '../../i18n/instruction-docs.es';
   import { AppController } from '../../state/app.svelte';
 
   interface Props {
@@ -9,6 +11,7 @@
   let { mnemonic }: Props = $props();
   const app = AppController.use();
   const doc = $derived(findInstruction(mnemonic));
+  const text = $derived(doc ? instructionText(doc, i18n.locale) : undefined);
   const ordered = INSTRUCTIONS.slice().sort(
     (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
   );
@@ -39,22 +42,25 @@
   const exampleOf = (operands: string) => `${doc?.mnemonic} ${EXAMPLE_FOR[operands] ?? ''}`.trim();
 </script>
 
-{#if doc}
+{#if doc && text}
   <article class="ref">
     <header>
       <h1 class="mono">{doc.mnemonic}</h1>
-      <span class="sub">{doc.summary.replace(/\.$/, '')}</span>
-      {#if doc.isNew}<span class="new">new in Asm8</span>{/if}
+      <span class="sub">{text.summary.replace(/\.$/, '')}</span>
+      {#if doc.isNew}<span class="new">{t('docs.page.newIn')}</span>{/if}
     </header>
-    <p class="details">{doc.details}</p>
-    {#if doc.aliases.length}<p class="aliases">Also written {doc.aliases.join(', ')}.</p>{/if}
+    <p class="details">{text.details}</p>
+    {#if doc.aliases.length}<p class="aliases">
+        {t('docs.page.aliases', { list: doc.aliases.join(', ') })}
+      </p>{/if}
 
+    <h2>{t('docs.page.forms')}</h2>
     <table>
       <thead
         ><tr
-          ><th>Form</th><th>Example</th><th>Opcode</th><th>Bytes</th><th
-            ><span class="sr-only">Insert</span></th
-          ></tr
+          ><th>{t('docs.page.form')}</th><th>{t('docs.page.example')}</th><th>{t('docs.page.opcode')}</th><th
+            >{t('docs.page.bytes')}</th
+          ><th><span class="sr-only">{t('docs.page.insert')}</span></th></tr
         ></thead
       >
       <tbody>
@@ -69,7 +75,7 @@
                 type="button"
                 class="ins"
                 onclick={() => app.insertExample(doc.mnemonic === 'DB' ? 'DB "Hi"' : exampleOf(f.operands))}
-                >Insert</button
+                >{t('docs.page.insert')}</button
               >
             </td>
           </tr>
@@ -77,25 +83,50 @@
       </tbody>
     </table>
 
+    <h2>{t('docs.page.examples')}</h2>
+    <ol class="examples">
+      {#each text.examples as ex, i (i)}
+        <li>
+          <pre class="mono code">{ex.code}</pre>
+          <div class="ex-foot">
+            <span class="note">{ex.note}</span>
+            <button
+              type="button"
+              class="ins"
+              aria-label={t('docs.page.insertNth', { n: i + 1 })}
+              onclick={() => app.insertExample(ex.code)}>{t('docs.page.insert')}</button
+            >
+          </div>
+        </li>
+      {/each}
+    </ol>
+
+    {#if text.notes.length}
+      <h2>{t('docs.page.notes')}</h2>
+      <ul class="notes">
+        {#each text.notes as n, i (i)}<li>{n}</li>{/each}
+      </ul>
+    {/if}
+
     <dl>
       <div>
-        <dt>Flags</dt>
-        <dd>{doc.flags}</dd>
+        <dt>{t('docs.page.flags')}</dt>
+        <dd>{text.flags}</dd>
       </div>
       <div>
-        <dt>Group</dt>
-        <dd>{doc.group}</dd>
+        <dt>{t('docs.page.group')}</dt>
+        <dd>{groupLabel(doc.group)}</dd>
       </div>
       <div>
-        <dt>In this file</dt>
-        <dd class="mono">used {uses} time{uses === 1 ? '' : 's'}</dd>
+        <dt>{t('docs.page.inFile')}</dt>
+        <dd class="mono">{tn('docs.page.uses', uses)}</dd>
       </div>
     </dl>
 
     <div class="actions">
-      <Button onclick={() => app.insertExample(doc.example)}>Insert example at cursor</Button>
+      <Button onclick={() => app.insertExample(doc.example)}>{t('docs.page.insertExample')}</Button>
       {#if next}<Button variant="ghost" onclick={() => app.openReference(next.mnemonic)}
-          >Next: {next.mnemonic}</Button
+          >{t('docs.page.next', { name: next.mnemonic })}</Button
         >{/if}
     </div>
   </article>
@@ -136,9 +167,15 @@
     color: var(--color-muted);
     margin: 0 0 8px;
   }
+  h2 {
+    margin: 24px 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
   table {
     width: 100%;
-    margin: 24px 0;
+    margin: 0 0 8px;
     border-collapse: collapse;
   }
   th {
@@ -169,10 +206,48 @@
   .ins:hover {
     color: var(--color-accent);
   }
+  .examples {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .code {
+    margin: 0;
+    padding: 8px 12px;
+    background: var(--color-raised);
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    tab-size: 8;
+    overflow-x: auto;
+    color: var(--syntax-literal);
+  }
+  .ex-foot {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .note {
+    color: var(--color-muted);
+    line-height: 1.45;
+  }
+  .notes {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.55;
+  }
+  .notes li + li {
+    margin-top: 4px;
+  }
   dl {
     display: flex;
-    gap: 48px;
-    margin: 0 0 28px;
+    flex-wrap: wrap;
+    gap: 16px 48px;
+    margin: 28px 0;
   }
   dt {
     color: var(--color-muted);
@@ -183,6 +258,12 @@
   }
   .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
+  }
+  @media (max-width: 600px) {
+    .ref {
+      padding: 24px 16px;
+    }
   }
 </style>

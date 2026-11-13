@@ -35,4 +35,24 @@ describe('examples', () => {
     expect(r?.kind).toBe('halted');
     expect(String.fromCharCode(...m.takeOutput())).toBe('hi');
   });
+
+  const byFile = (file: string) => EXAMPLES.find((e) => e.file === file)!.source;
+
+  it('print-string prints with OUT', () => {
+    const { m, r } = run(byFile('print-string.asm'));
+    expect(r?.kind).toBe('halted');
+    expect(String.fromCharCode(...m.takeOutput())).toBe('Hello!');
+  });
+
+  it('count prints the digits 0 to 9', () => {
+    const { m, r } = run(byFile('count.asm'));
+    expect(r?.kind).toBe('halted');
+    expect(String.fromCharCode(...m.takeOutput())).toBe('0123456789\n');
+  });
+
+  it('subroutines squares 3 and prints 9', () => {
+    const { m, r } = run(byFile('subroutines.asm'));
+    expect(r?.kind).toBe('halted');
+    expect(String.fromCharCode(...m.takeOutput())).toBe('9');
+  });
 });

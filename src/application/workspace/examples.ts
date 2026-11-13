@@ -100,11 +100,67 @@ done:
 \tHLT
 `;
 
+const PRINT_STRING = `; Print a zero-terminated string with OUT
+\tJMP start
+msg:\tDB "Hello!"
+\tDB 0\t\t; end of the string
+
+start:
+\tMOV C, msg\t; C points to the text
+next:
+\tMOV A, [C]\t; load a character
+\tCMP A, 0\t; end of the string?
+\tJZ done
+\tOUT A\t\t; print it
+\tINC C
+\tJMP next
+done:
+\tHLT
+`;
+
+const COUNT = `; Print the digits 0 to 9
+\tMOV B, 0\t; counter
+loop:
+\tMOV A, B
+\tADD A, '0'\t; number to character
+\tOUT A
+\tINC B
+\tCMP B, 10\t; done after 9
+\tJNZ loop
+\tMOV A, 10\t; new line
+\tOUT A
+\tHLT
+`;
+
+const SUBROUTINES = `; Square a number and print it
+\tMOV A, 3
+\tCALL square\t; A = 3 x 3 = 9
+\tCALL digit\t; prints 9
+\tHLT
+
+square:\t\t\t; A = A x A
+\tPUSH B
+\tMOV B, A
+\tMUL B
+\tPOP B
+\tRET
+
+digit:\t\t\t; print A (0-9) as a character
+\tPUSH A
+\tADD A, '0'
+\tOUT A
+\tPOP A
+\tRET
+`;
+
 export const EXAMPLES: readonly Example[] = [
   { file: 'hello.asm', summary: 'Print a string', source: HELLO },
   { file: 'fibonacci.asm', summary: 'Loops, carry', source: FIBONACCI },
   { file: 'bubble-sort.asm', summary: 'Memory, CMP', source: BUBBLE_SORT },
-  { file: 'keyboard-echo.asm', summary: 'IN / OUT ports', source: KEYBOARD_ECHO },
+  { file: 'keyboard-echo.asm', summary: 'IN / OUT', source: KEYBOARD_ECHO },
+  { file: 'print-string.asm', summary: 'OUT, zero-terminated text', source: PRINT_STRING },
+  { file: 'count.asm', summary: 'Loop with a counter', source: COUNT },
+  { file: 'subroutines.asm', summary: 'CALL / RET, PUSH / POP', source: SUBROUTINES },
 ];
 
 export const DEFAULT_PROGRAM = HELLO;
