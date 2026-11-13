@@ -5,6 +5,7 @@ import { SPEEDS, speedLabel } from '@app/run/protocol';
 import type { SettingsRepository } from '@app/settings/settings';
 import { DEFAULT_PROGRAM } from '@app/workspace/examples';
 import type { WorkspaceProvider } from '@app/workspace/workspace-provider';
+import { applyLanguage } from '../i18n/i18n.svelte';
 import { applyTheme } from '../theme/themes';
 import { displayKeys, Keymap, type Command } from './commands';
 import { SessionState } from './session.svelte';
@@ -106,6 +107,7 @@ export class AppController {
     const s = this.settings.value;
     this.session.pauseOnFault = s.pauseOnFault;
     this.session.scrollback = s.scrollback;
+    applyLanguage(s.language);
     document.documentElement.style.setProperty('--code-size', `${s.fontSize}px`);
   }
 

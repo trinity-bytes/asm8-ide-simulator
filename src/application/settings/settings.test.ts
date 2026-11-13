@@ -23,4 +23,10 @@ describe('sanitizeSettings', () => {
       numberBase: 'hex',
     });
   });
+
+  it('keeps a known language and falls back to auto', () => {
+    expect(DEFAULT_SETTINGS.language).toBe('auto');
+    expect(sanitizeSettings({ language: 'es' }).language).toBe('es');
+    expect(sanitizeSettings({ language: 'fr' }).language).toBe('auto');
+  });
 });
