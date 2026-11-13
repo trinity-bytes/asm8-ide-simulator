@@ -1,6 +1,7 @@
 <script lang="ts">
   import ToggleChip from '../../atoms/ToggleChip.svelte';
   import TabStrip from '../../molecules/TabStrip.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import type { PanelTab } from '../../state/ui.svelte';
   import MachinePanel from '../MachinePanel.svelte';
@@ -21,36 +22,43 @@
   const problems = $derived(app.activeAssembly?.diagnostics.length ?? 0);
 
   const tabs = $derived([
-    { id: 'console' as PanelTab, label: 'Console' },
-    ...(withMachine ? [{ id: 'machine' as PanelTab, label: 'Machine' }] : []),
-    { id: 'problems' as PanelTab, label: 'Problems', badge: problems },
-    { id: 'display' as PanelTab, label: 'Display' },
-    ...(withMachine ? [] : [{ id: 'writes' as PanelTab, label: 'Memory writes' }]),
+    { id: 'console' as PanelTab, label: t('panels.bottom.console') },
+    ...(withMachine ? [{ id: 'machine' as PanelTab, label: t('panels.bottom.machine') }] : []),
+    { id: 'problems' as PanelTab, label: t('panels.bottom.problems'), badge: problems },
+    { id: 'display' as PanelTab, label: t('panels.bottom.display') },
+    ...(withMachine ? [] : [{ id: 'writes' as PanelTab, label: t('panels.bottom.writes') }]),
   ]);
   const current = $derived(tabs.some((t) => t.id === ui.panelTab) ? ui.panelTab : 'console');
 </script>
 
-<section class="panel" aria-label="Panel">
+<section class="panel" aria-label={t('panels.bottom.aria')}>
   <div class="bar">
-    <TabStrip {tabs} active={current} label="Panel views" {touch} onselect={(id) => (ui.panelTab = id)} />
+    <TabStrip
+      {tabs}
+      active={current}
+      label={t('panels.bottom.views')}
+      {touch}
+      onselect={(id) => (ui.panelTab = id)}
+    />
     {#if current === 'console'}
       <div class="tools">
         <ToggleChip
           pressed={settings.value.consoleView === 'text'}
-          onclick={() => settings.set('consoleView', 'text')}>Text</ToggleChip
+          onclick={() => settings.set('consoleView', 'text')}>{t('panels.bottom.text')}</ToggleChip
         >
         <ToggleChip
           pressed={settings.value.consoleView === 'hex'}
-          onclick={() => settings.set('consoleView', 'hex')}>Hex</ToggleChip
+          onclick={() => settings.set('consoleView', 'hex')}>{t('panels.bottom.hex')}</ToggleChip
         >
         <ToggleChip
           pressed={settings.value.consoleWrap}
-          onclick={() => settings.set('consoleWrap', !settings.value.consoleWrap)}>Wrap</ToggleChip
+          onclick={() => settings.set('consoleWrap', !settings.value.consoleWrap)}
+          >{t('panels.bottom.wrap')}</ToggleChip
         >
         <ToggleChip
           pressed={false}
           disabled={app.session.console.length === 0}
-          onclick={() => app.session.clearConsole()}>Clear</ToggleChip
+          onclick={() => app.session.clearConsole()}>{t('panels.bottom.clear')}</ToggleChip
         >
       </div>
     {/if}

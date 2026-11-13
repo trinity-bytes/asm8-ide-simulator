@@ -1,24 +1,26 @@
 <script lang="ts">
   import type { RunState } from '@app/run/protocol';
+  import type { MessageKey } from '../i18n/i18n.svelte';
+  import { t } from '../i18n/i18n.svelte';
 
   interface Props {
     state: RunState;
   }
   let { state }: Props = $props();
 
-  const LABELS: Record<RunState, string> = {
-    empty: 'Ready',
-    ready: 'Ready',
-    running: 'Running',
-    paused: 'Paused',
-    waiting: 'Waiting for input',
-    halted: 'Halted',
-    fault: 'Error',
+  const LABELS: Record<RunState, MessageKey> = {
+    empty: 'shell.state.ready',
+    ready: 'shell.state.ready',
+    running: 'shell.state.running',
+    paused: 'shell.state.paused',
+    waiting: 'shell.state.waitingInput',
+    halted: 'shell.state.halted',
+    fault: 'shell.state.error',
   };
 </script>
 
 <span class="pill {state}" role="status">
-  <span class="dot" aria-hidden="true"></span>{LABELS[state]}
+  <span class="dot" aria-hidden="true"></span>{t(LABELS[state])}
 </span>
 
 <style>

@@ -2,6 +2,7 @@
   import Icon from '../atoms/Icon.svelte';
   import IconButton from '../atoms/IconButton.svelte';
   import Pill from '../atoms/Pill.svelte';
+  import { t, tn } from '../i18n/i18n.svelte';
   import { AppController } from '../state/app.svelte';
   import RunControls from './RunControls.svelte';
 
@@ -15,7 +16,7 @@
 
   const crumbs = $derived.by(() => {
     const tab = ws.active;
-    if (!tab) return ws.fs ? [ws.fs.name] : ['Welcome'];
+    if (!tab) return ws.fs ? [ws.fs.name] : [t('shell.title.welcome')];
     if (tab.kind !== 'file') return [tab.title];
     const parts = tab.key.split('/');
     // Touch layouts have room for the file name only.
@@ -26,13 +27,13 @@
 
 <header class="titlebar" class:touch>
   {#if onmenu}
-    <IconButton icon="menu" label="Files" size="touch" onclick={onmenu} />
+    <IconButton icon="menu" label={t('shell.wb.files')} size="touch" onclick={onmenu} />
   {/if}
   <div class="brand">
     <Icon name="cpu" size={20} />
     {#if !touch}<span>Asm8</span>{/if}
   </div>
-  <nav class="crumbs" aria-label="Location">
+  <nav class="crumbs" aria-label={t('shell.title.location')}>
     {#each crumbs as c, i (i)}
       {#if i > 0}<span class="sep" aria-hidden="true">/</span>{/if}
       <span class:last={i === crumbs.length - 1}>{c}</span>
@@ -41,7 +42,7 @@
   <div class="center"><RunControls {touch} /></div>
   <div class="state">
     <Pill state={app.session.state} />
-    {#if steps > 0 && !touch}<span class="steps mono">{steps} steps</span>{/if}
+    {#if steps > 0 && !touch}<span class="steps mono">{tn('shell.title.steps', steps)}</span>{/if}
   </div>
 </header>
 

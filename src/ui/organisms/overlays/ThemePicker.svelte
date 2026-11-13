@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import { applyTheme, THEMES, type ThemeId } from '../../theme/themes';
 
@@ -36,17 +37,17 @@
 </script>
 
 <div class="scrim" role="presentation" onclick={() => done(false)}></div>
-<div class="picker" role="dialog" aria-modal="true" aria-label="Color theme">
-  <p class="title">Color theme <span>↑↓ preview · Enter keep · Esc cancel</span></p>
+<div class="picker" role="dialog" aria-modal="true" aria-label={t('panels.theme.title')}>
+  <p class="title">{t('panels.theme.title')} <span>{t('panels.theme.hint')}</span></p>
   <ul
     bind:this={list}
     role="listbox"
     tabindex="0"
-    aria-label="Themes"
+    aria-label={t('panels.theme.list')}
     aria-activedescendant="theme-{index}"
     {onkeydown}
   >
-    {#each THEMES as t, i (t.id)}
+    {#each THEMES as theme, i (theme.id)}
       <li
         id="theme-{i}"
         role="option"
@@ -56,12 +57,12 @@
         onmouseenter={() => (index = i)}
         onkeydown={() => {}}
       >
-        <span class="sw" style:background={t.swatches[0]}
-          >{#each t.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}</span
+        <span class="sw" style:background={theme.swatches[0]}
+          >{#each theme.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}</span
         >
-        <span>{t.name}</span>
-        {#if t.id === original}<span class="cur">current</span>{/if}
-        {#if t.id === 'asm8-dark'}<span class="cur">meets contrast</span>{/if}
+        <span>{theme.name}</span>
+        {#if theme.id === original}<span class="cur">{t('panels.theme.current')}</span>{/if}
+        {#if theme.id === 'asm8-dark'}<span class="cur">{t('panels.theme.contrast')}</span>{/if}
       </li>
     {/each}
   </ul>

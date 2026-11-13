@@ -1,6 +1,7 @@
 <script lang="ts">
   import Kbd from '../../atoms/Kbd.svelte';
   import Dialog from '../../molecules/Dialog.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -12,19 +13,19 @@
     }
     return [...map];
   });
-  const editorKeys = [
-    { title: 'Find in file', keys: 'Ctrl+F' },
-    { title: 'Undo / Redo', keys: 'Ctrl+Z / Ctrl+Shift+Z' },
-    { title: 'Toggle comment', keys: 'Ctrl+/' },
-    { title: 'Show quick fix', keys: 'Ctrl+.' },
-    { title: 'Suggest', keys: 'Ctrl+Space' },
-    { title: 'Leave the editor', keys: 'Esc, then Tab' },
-  ];
+  const editorKeys = $derived([
+    { title: t('panels.shortcuts.find'), keys: 'Ctrl+F' },
+    { title: t('panels.shortcuts.undo'), keys: 'Ctrl+Z / Ctrl+Shift+Z' },
+    { title: t('panels.shortcuts.comment'), keys: 'Ctrl+/' },
+    { title: t('panels.shortcuts.quickFix'), keys: 'Ctrl+.' },
+    { title: t('panels.shortcuts.suggest'), keys: 'Ctrl+Space' },
+    { title: t('panels.shortcuts.leave'), keys: t('panels.shortcuts.leaveKeys') },
+  ]);
 </script>
 
-<Dialog title="Keyboard shortcuts" width={720} onclose={() => (app.ui.overlay = null)}>
+<Dialog title={t('panels.shortcuts.title')} width={720} onclose={() => (app.ui.overlay = null)}>
   <div class="cols">
-    {#each [...groups, ['Editor', editorKeys] as const] as [category, list] (category)}
+    {#each [...groups, [t('panels.shortcuts.editor'), editorKeys] as const] as [category, list] (category)}
       <section>
         <h3>{category}</h3>
         <dl>

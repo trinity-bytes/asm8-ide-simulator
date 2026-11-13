@@ -2,6 +2,7 @@
   import type { MenuItemSpec } from '../state/ui.svelte';
   import Icon from '../atoms/Icon.svelte';
   import Kbd from '../atoms/Kbd.svelte';
+  import { t } from '../i18n/i18n.svelte';
 
   interface Props {
     items: readonly (MenuItemSpec | 'separator')[];
@@ -10,7 +11,7 @@
     onclose: () => void;
     label?: string;
   }
-  let { items, x, y, onclose, label = 'Actions' }: Props = $props();
+  let { items, x, y, onclose, label }: Props = $props();
 
   let menu: HTMLDivElement | null = $state(null);
   let pos = $state({ left: 0, top: 0 });
@@ -49,7 +50,7 @@
   class="menu"
   role="menu"
   tabindex="-1"
-  aria-label={label}
+  aria-label={label ?? t('shell.menu.actions')}
   style:left="{pos.left}px"
   style:top="{pos.top}px"
   {onkeydown}

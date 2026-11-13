@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import IconButton from '../atoms/IconButton.svelte';
+  import { t } from '../i18n/i18n.svelte';
 
   interface Props {
     title: string;
@@ -39,7 +40,7 @@
 >
   <header>
     <h2 id="{id}-title">{title}</h2>
-    <IconButton icon="close" label="Close" size="sm" onclick={onclose} />
+    <IconButton icon="close" label={t('common.close')} size="sm" onclick={onclose} />
   </header>
   <div class="body">{@render children()}</div>
   {#if actions}<footer>{@render actions()}</footer>{/if}

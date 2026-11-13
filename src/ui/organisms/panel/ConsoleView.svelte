@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { hex } from '@core/index';
+  import { i18n, t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
   import type { ConsoleEntry } from '../../state/session.svelte';
 
@@ -83,12 +84,15 @@
     {onscroll}
     role="log"
     aria-live="polite"
-    aria-label="Console output"
+    aria-label={t('panels.console.output')}
     tabindex="0"
   >
     {#if hidden > 0}
       <button type="button" class="earlier" onclick={() => (shown += PAGE)}>
-        Show {Math.min(PAGE, hidden).toLocaleString('en')} earlier lines ({hidden.toLocaleString('en')} hidden)
+        {t('panels.console.earlier', {
+          count: Math.min(PAGE, hidden).toLocaleString(i18n.locale),
+          hidden: hidden.toLocaleString(i18n.locale),
+        })}
       </button>
     {/if}
     {#each visible as e (e.id)}
@@ -107,14 +111,14 @@
       </div>
     {:else}
       <p class="empty mono">
-        Nothing here yet. Program output, errors and keyboard input appear in this console.
+        {t('panels.console.empty')}
       </p>
     {/each}
     {#if waiting && !s.console.at(-1)?.open}
       <div class="entry tty">
         <span class="kind mono">tty</span><span class="text mono"
           ><span class="cursor" aria-hidden="true"></span></span
-        ><span class="meta mono">waiting for a key · port 0x00</span>
+        ><span class="meta mono">{t('panels.console.waitingMeta')}</span>
       </div>
     {/if}
   </div>
@@ -124,10 +128,8 @@
       bind:this={input}
       class="mono"
       value=""
-      placeholder={waiting
-        ? 'The program is waiting: type a key'
-        : 'Type to send keys to the program (port 0x00)'}
-      aria-label="Keyboard input for the program"
+      placeholder={waiting ? t('panels.console.placeholderWaiting') : t('panels.console.placeholder')}
+      aria-label={t('panels.console.input')}
       autocomplete="off"
       autocapitalize="off"
       spellcheck="false"

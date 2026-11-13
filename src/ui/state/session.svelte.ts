@@ -9,6 +9,8 @@ import {
   type StopReason,
 } from '@core/index';
 import { speedLabel, type RunnerEvent, type RunnerPort, type RunState, type Speed } from '@app/run/protocol';
+import { translateCoreMessage } from '../i18n/core-messages';
+import { i18n, t, tn } from '../i18n/i18n.svelte';
 
 export type ConsoleKind = 'asm' | 'run' | 'out' | 'cpu' | 'err' | 'warn' | 'in' | 'tty' | 'fix';
 
@@ -24,6 +26,38 @@ export interface ConsoleEntry {
   readonly line?: number;
   /** A tty line still receiving output. */
   readonly open?: boolean;
+}
+
+/** Console text: a string, or a function so translated notices follow the current language. */
+type LogText = string | (() => string);
+
+/** Entry whose `text`/`meta` are getters when given as functions (entries live in `$state.raw`). */
+function makeEntry(
+  id: number,
+  kind: ConsoleKind,
+  text: LogText,
+  extra: Partial<Omit<ConsoleEntry, 'id' | 'kind' | 'text' | 'meta'>> & { meta?: LogText },
+): ConsoleEntry {
+  const { meta, ...rest } = extra;
+  const entry = { id, kind, ...rest } as { -readonly [K in keyof ConsoleEntry]: ConsoleEntry[K] };
+  if (typeof text === 'function') Object.defineProperty(entry, 'text', { get: text, enumerable: true });
+  else entry.text = text;
+  if (typeof meta === 'function') Object.defineProperty(entry, 'meta', { get: meta, enumerable: true });
+  else if (meta !== undefined) entry.meta = meta;
+  return entry;
+}
+
+/** Snapshot with its fault message in the current language (same object when unchanged). */
+function localSnapshot(s: MachineSnapshot | null): MachineSnapshot | null {
+  if (!s?.fault) return s;
+  const fault = translateCoreMessage(s.fault);
+  return fault === s.fault ? s : { ...s, fault };
+}
+
+function localStop(stop: StopReason | null): StopReason | null {
+  if (!stop || (stop.kind !== 'fault' && stop.kind !== 'condition-error')) return stop;
+  const message = translateCoreMessage(stop.message);
+  return message === stop.message ? stop : { ...stop, message };
 }
 
 export interface LoadedProgram {
@@ -53,10 +87,12 @@ const regValue = (s: MachineSnapshot, key: RegisterKey) =>
  */
 export class SessionState {
   state = $state<RunState>('empty');
-  snapshot = $state.raw<MachineSnapshot | null>(null);
+  private rawSnapshot = $state.raw<MachineSnapshot | null>(null);
+  private readonly localSnapshot = $derived(localSnapshot(this.rawSnapshot));
   program = $state.raw<LoadedProgram | null>(null);
   speed = $state<Speed>(4);
-  lastStop = $state.raw<StopReason | null>(null);
+  private rawStop = $state.raw<StopReason | null>(null);
+  private readonly localStop = $derived(localStop(this.rawStop));
   console = $state.raw<ConsoleEntry[]>([]);
   writes = $state.raw<MemoryWrite[]>([]);
   /** Step at which each register last changed. */
@@ -89,6 +125,22 @@ export class SessionState {
 
   // ---------- derived ----------
 
+  /** Latest machine snapshot; its fault message follows the current language. */
+  get snapshot(): MachineSnapshot | null {
+    return this.localSnapshot;
+  }
+  set snapshot(value: MachineSnapshot | null) {
+    this.rawSnapshot = value;
+  }
+
+  /** Why the last run stopped; fault and condition messages follow the current language. */
+  get lastStop(): StopReason | null {
+    return this.localStop;
+  }
+  set lastStop(value: StopReason | null) {
+    this.rawStop = value;
+  }
+
   get running(): boolean {
     return this.state === 'running' || this.state === 'waiting';
   }
@@ -105,11 +157,11 @@ export class SessionState {
 
   log(
     kind: ConsoleKind,
-    text: string,
-    extra: Partial<Omit<ConsoleEntry, 'id' | 'kind' | 'text'>> = {},
+    text: LogText,
+    extra: Partial<Omit<ConsoleEntry, 'id' | 'kind' | 'text' | 'meta'>> & { meta?: LogText } = {},
   ): void {
     const next = this.closedTty();
-    next.push({ id: this.nextId++, kind, text, ...extra });
+    next.push(makeEntry(this.nextId++, kind, text, extra));
     this.console = this.trimmed(next);
   }
 
@@ -181,15 +233,19 @@ export class SessionState {
     const assembly = assemble(source);
     const errors = assembly.diagnostics.filter((d) => d.severity === 'error');
     const labels = Object.keys(assembly.labels).length;
-    this.log('asm', `assemble ${fileName(path)}`, { meta: clock() });
-    this.log(
-      'asm',
-      `${assembly.code.length} bytes · ${labels} label${labels === 1 ? '' : 's'} · ${errors.length} problem${errors.length === 1 ? '' : 's'}`,
+    const file = fileName(path);
+    this.log('asm', () => t('state.console.assemble', { file }), { meta: clock() });
+    this.log('asm', () =>
+      t('state.console.summary', {
+        bytes: tn('state.console.bytes', assembly.code.length),
+        labels: tn('state.console.labels', labels),
+        problems: tn('state.console.problems', errors.length),
+      }),
     );
     this.onProblems(assembly, path);
     if (!assembly.ok) {
       for (const e of errors.slice(0, 20)) {
-        this.log('err', `${fileName(path)}:${e.line + 1}  ${e.message}`, { line: e.line });
+        this.log('err', () => `${file}:${e.line + 1}  ${translateCoreMessage(e.message)}`, { line: e.line });
       }
       return false;
     }
@@ -220,7 +276,8 @@ export class SessionState {
   run(path: string, source: string): void {
     if (this.running) return;
     if (!this.ensureLoaded(path, source)) return;
-    this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
+    const speed = speedLabel(this.speed);
+    this.log('run', () => t('state.console.runStarted', { speed }), { meta: clock() });
     this.runner.send({ type: 'run', speed: this.speed });
     this.state = 'running';
   }
@@ -259,7 +316,8 @@ export class SessionState {
     this.undoAvailable = false;
     // `load` stops any running clock in the runner before anything else happens.
     if (!this.load(path, source)) return;
-    this.log('run', `Run started at ${speedLabel(this.speed)}`, { meta: clock() });
+    const speed = speedLabel(this.speed);
+    this.log('run', () => t('state.console.runStarted', { speed }), { meta: clock() });
     this.runner.send({ type: 'run', speed: this.speed });
   }
 
@@ -335,17 +393,16 @@ export class SessionState {
       for (const k of changed) this.changedAt[k] = next.steps;
     }
 
-    if (e.outputDropped)
-      this.log(
-        'warn',
-        `${e.outputDropped.toLocaleString('en')} bytes of output skipped: the program prints faster than the console can show.`,
-      );
+    if (e.outputDropped) {
+      const dropped = e.outputDropped;
+      this.log('warn', () => t('state.console.outputDropped', { n: dropped.toLocaleString(i18n.locale) }));
+    }
     if (e.output.length) this.appendOutput(e.output);
-    this.snapshot = next;
+    this.rawSnapshot = next;
     this.state = e.state;
 
     if (e.stop) {
-      this.lastStop = e.stop;
+      this.rawStop = e.stop;
       this.describeStop(e.stop, next);
       this.revealTick++;
     }
@@ -353,39 +410,62 @@ export class SessionState {
 
   private describeStop(stop: StopReason, s: MachineSnapshot): void {
     const ip = `0x${hex(s.registers.ip)}`;
-    const lineNote = (prefix: string) => (s.line !== undefined ? ` (${prefix}line ${s.line + 1})` : '');
+    const at = s.line;
+    const lineNote = (key: 'state.console.lineNote' | 'state.console.hltLineNote') =>
+      at !== undefined ? t(key, { line: at + 1 }) : '';
     const file = this.program ? fileName(this.program.path) : '';
     switch (stop.kind) {
       case 'halted': {
         const display = this.displayText(s);
-        if (display) this.log('out', display, { meta: `${display.length} chars` });
-        this.log('cpu', `Halted at ${ip}${lineNote('HLT, ')} after ${s.steps} steps`, {
-          meta: clock(),
-          ...(s.line !== undefined ? { line: s.line } : {}),
-        });
+        if (display)
+          this.log('out', display, { meta: () => t('state.console.chars', { n: display.length }) });
+        const steps = s.steps;
+        this.log(
+          'cpu',
+          () => t('state.console.halted', { ip, note: lineNote('state.console.hltLineNote'), steps }),
+          {
+            meta: clock(),
+            ...(s.line !== undefined ? { line: s.line } : {}),
+          },
+        );
         break;
       }
       case 'breakpoint':
         this.log(
           'cpu',
-          `Paused at breakpoint ${file}:${stop.line + 1} (0x${hex(s.registers.ip)}) · step ${s.steps}`,
+          () => t('state.console.breakpoint', { file, line: stop.line + 1, ip, steps: s.steps }),
           {
             meta: clock(),
             line: stop.line,
           },
         );
         break;
-      case 'fault':
-        this.log('err', `${stop.message} at 0x${hex(s.faultAddress ?? s.registers.ip)}${lineNote('')}`, {
+      case 'fault': {
+        const address = `0x${hex(s.faultAddress ?? s.registers.ip)}`;
+        const message = stop.message;
+        const text = () =>
+          t('state.console.fault', {
+            message: translateCoreMessage(message),
+            address,
+            note: lineNote('state.console.lineNote'),
+          });
+        this.log('err', text, {
           meta: clock(),
           ...(s.line !== undefined ? { line: s.line } : {}),
         });
         break;
-      case 'condition-error':
-        this.log('err', `Breakpoint condition on line ${stop.line + 1}: ${stop.message}`, {
-          line: stop.line,
-        });
+      }
+      case 'condition-error': {
+        const { line, message } = stop;
+        this.log(
+          'err',
+          () => t('state.console.conditionError', { line: line + 1, message: translateCoreMessage(message) }),
+          {
+            line,
+          },
+        );
         break;
+      }
       default:
         break;
     }

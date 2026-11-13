@@ -6,6 +6,7 @@
   import BottomPanel from '../organisms/panel/BottomPanel.svelte';
   import StatusBar from '../organisms/StatusBar.svelte';
   import TitleBar from '../organisms/TitleBar.svelte';
+  import { t } from '../i18n/i18n.svelte';
   import { AppController } from '../state/app.svelte';
   import SideBar from './SideBar.svelte';
 
@@ -61,7 +62,7 @@
         class="resizer"
         role="separator"
         aria-orientation="horizontal"
-        aria-label="Resize panel"
+        aria-label={t('shell.wb.resizePanel')}
         aria-valuenow={panelHeight}
         aria-valuemin={120}
         aria-valuemax={1000}
@@ -76,11 +77,13 @@
     {/if}
     {#if layout === 'tablet-landscape'}
       {#if ui.machineDrawer}
-        <div class="drawer" role="complementary" aria-label="Machine drawer">
+        <div class="drawer" role="complementary" aria-label={t('shell.wb.machineDrawer')}>
           <MachinePanel onclose={() => (ui.machineDrawer = false)} />
         </div>
       {:else}
-        <button type="button" class="drawer-tab" onclick={() => (ui.machineDrawer = true)}>Machine</button>
+        <button type="button" class="drawer-tab" onclick={() => (ui.machineDrawer = true)}
+          >{t('shell.wb.machine')}</button
+        >
       {/if}
     {/if}
   </div>
@@ -88,9 +91,14 @@
 
   {#if portrait && ui.filesSheet}
     <div class="scrim" role="presentation" onclick={() => (ui.filesSheet = false)}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label="Files">
+    <div class="sheet" role="dialog" aria-modal="true" aria-label={t('shell.wb.files')}>
       <div class="sheet-head">
-        <IconButton icon="close" label="Close files" size="touch" onclick={() => (ui.filesSheet = false)} />
+        <IconButton
+          icon="close"
+          label={t('shell.wb.closeFiles')}
+          size="touch"
+          onclick={() => (ui.filesSheet = false)}
+        />
       </div>
       <SideBar touch onopened={() => (ui.filesSheet = false)} />
     </div>

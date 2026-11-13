@@ -1,5 +1,6 @@
 <script lang="ts">
   import { hex, MEMORY_SIZE, DISPLAY_SIZE } from '@core/index';
+  import { t, tn } from '../i18n/i18n.svelte';
   import { AppController } from '../state/app.svelte';
 
   const app = AppController.use();
@@ -7,21 +8,21 @@
 
   const where = $derived.by(() => {
     const snap = s.snapshot;
-    if (!snap) return app.workspace.fs ? 'Ready' : 'No folder open';
+    if (!snap) return app.workspace.fs ? t('shell.state.ready') : t('shell.status.noFolder');
     const ip = `0x${hex(snap.registers.ip)}`;
     switch (s.state) {
       case 'running':
-        return `Running · step ${snap.steps}`;
+        return t('shell.state.runningStep', { n: snap.steps });
       case 'waiting':
-        return 'Waiting for a key · port 0x00';
+        return t('shell.state.waitingKey');
       case 'paused':
-        return `Paused at ${ip} · step ${snap.steps}`;
+        return t('shell.status.pausedAt', { ip, n: snap.steps });
       case 'halted':
-        return `Halted at ${ip}`;
+        return t('shell.status.haltedAt', { ip });
       case 'fault':
-        return `Error at ${ip}`;
+        return t('shell.status.errorAt', { ip });
       default:
-        return 'Ready';
+        return t('shell.state.ready');
     }
   });
   const problems = $derived(
@@ -33,34 +34,34 @@
   const bytes = $derived(app.activeAssembly?.code.length ?? 0);
   const saveState = $derived.by(() => {
     const tab = app.workspace.activeFile;
-    if (!tab) return app.workspace.active?.kind === 'settings' ? 'Settings saved automatically' : '';
-    if (app.workspace.isDirty(tab)) return 'Unsaved changes';
+    if (!tab) return app.workspace.active?.kind === 'settings' ? t('shell.status.settingsSaved') : '';
+    if (app.workspace.isDirty(tab)) return t('shell.status.unsaved');
     return app.workspace.fs?.kind === 'folder'
-      ? 'Saved to disk'
+      ? t('shell.status.savedDisk')
       : app.workspace.fs?.kind === 'browser'
-        ? 'Saved in browser'
-        : 'Example';
+        ? t('shell.status.savedBrowser')
+        : t('shell.status.example');
   });
 </script>
 
 <footer class="status">
   <span>{where}</span>
   <button type="button" class="link" onclick={() => (app.ui.panelTab = 'problems')}>
-    {problems} problem{problems === 1 ? '' : 's'}{warnings
-      ? ` · ${warnings} warning${warnings === 1 ? '' : 's'}`
-      : ''}
+    {tn('shell.status.problems', problems)}{warnings ? tn('shell.status.warnings', warnings) : ''}
   </button>
   {#if app.workspace.activeFile}
-    <span class:over={bytes > MEMORY_SIZE - DISPLAY_SIZE}>{bytes} of {MEMORY_SIZE} bytes used</span>
+    <span class:over={bytes > MEMORY_SIZE - DISPLAY_SIZE}
+      >{t('shell.status.bytesUsed', { bytes, total: MEMORY_SIZE })}</span
+    >
   {/if}
-  {#if !app.ui.online}<span>Offline</span>{/if}
+  {#if !app.ui.online}<span>{t('shell.status.offline')}</span>{/if}
   <span class="spacer"></span>
   {#if app.workspace.activeFile}
-    <span>Ln {app.cursor.line}, Col {app.cursor.col}</span>
-    <span>Tab size {app.settings.value.tabSize}</span>
+    <span>{t('shell.status.cursor', { line: app.cursor.line, col: app.cursor.col })}</span>
+    <span>{t('shell.status.tabSize', { n: app.settings.value.tabSize })}</span>
   {/if}
   {#if saveState}<span>{saveState}</span>{/if}
-  <span>Asm8 · 8-bit CPU</span>
+  <span>{t('shell.status.product')}</span>
 </footer>
 
 <style>

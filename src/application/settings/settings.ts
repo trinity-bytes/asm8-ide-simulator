@@ -12,6 +12,9 @@ export const THEME_IDS = [
 ] as const;
 export type ThemeSetting = (typeof THEME_IDS)[number];
 
+export const LANGUAGES = ['auto', 'en', 'es'] as const;
+export type LanguageSetting = (typeof LANGUAGES)[number];
+
 export interface Settings {
   // Editor
   readonly fontSize: number;
@@ -30,6 +33,8 @@ export interface Settings {
   readonly scrollback: number;
   // Appearance
   readonly theme: ThemeSetting;
+  /** `auto` follows the browser language. */
+  readonly language: LanguageSetting;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,6 +50,7 @@ export const DEFAULT_SETTINGS: Settings = {
   consoleView: 'text',
   scrollback: 10_000,
   theme: 'asm8-dark',
+  language: 'auto',
 };
 
 export const FONT_SIZES = [11, 12, 13, 14, 15, 16, 18] as const;
@@ -74,6 +80,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     consoleView: pickOne(r.consoleView, ['text', 'hex'] as const, d.consoleView),
     scrollback: pickNumber(r.scrollback, SCROLLBACK_SIZES, d.scrollback),
     theme: pickOne(r.theme, THEME_IDS, d.theme),
+    language: pickOne(r.language, LANGUAGES, d.language),
   };
 }
 
