@@ -1,12 +1,13 @@
 <script lang="ts">
   import Icon from '../../atoms/Icon.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
   const ICON = { info: 'info', positive: 'success', negative: 'warning' } as const;
 </script>
 
-<div class="toaster" role="region" aria-label="Notifications" aria-live="polite">
+<div class="toaster" role="region" aria-label={t('panels.toaster.aria')} aria-live="polite">
   {#each app.ui.toasts as t (t.id)}
     <div class="toast {t.tone}">
       <Icon name={ICON[t.tone]} size={16} />

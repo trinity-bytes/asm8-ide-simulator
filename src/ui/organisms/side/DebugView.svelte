@@ -4,6 +4,7 @@
   import Switch from '../../atoms/Switch.svelte';
   import TextField from '../../atoms/TextField.svelte';
   import SectionHeader from '../../molecules/SectionHeader.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -33,17 +34,7 @@
   const base = $derived(app.settings.value.numberBase);
   const snap = $derived(s.snapshot);
   const running = $derived(s.running);
-  const stateLabel = $derived(
-    {
-      empty: 'Not started',
-      ready: 'Ready',
-      running: 'Running',
-      paused: 'Paused',
-      waiting: 'Waiting',
-      halted: 'Halted',
-      fault: 'Error',
-    }[s.state],
-  );
+  const stateLabel = $derived(t(`panels.debug.state.${s.state}`));
 
   const frames = $derived.by(() => {
     if (!snap || !s.program) return [];
@@ -80,40 +71,45 @@
   }
 </script>
 
-<section class="view" aria-label="Run and debug">
-  <div class="toolbar" role="toolbar" aria-label="Debug controls">
+<section class="view" aria-label={t('panels.debug.aria')}>
+  <div class="toolbar" role="toolbar" aria-label={t('panels.debug.controls')}>
     <span class="state" class:paused={s.state === 'paused'}>{stateLabel}</span>
     {#if running}
-      <IconButton icon="pause" label="Pause (F5)" onclick={() => s.pause()} />
+      <IconButton icon="pause" label={t('panels.debug.pause')} onclick={() => s.pause()} />
     {:else}
-      <IconButton icon="play" label="Continue (F5)" onclick={() => app.run()} />
+      <IconButton icon="play" label={t('panels.debug.continue')} onclick={() => app.run()} />
     {/if}
-    <IconButton icon="step" label="Step (F10)" disabled={running} onclick={() => app.step()} />
+    <IconButton icon="step" label={t('panels.debug.step')} disabled={running} onclick={() => app.step()} />
     <IconButton
       icon="stepOver"
-      label="Step over CALL (F11)"
+      label={t('panels.debug.stepOver')}
       disabled={running}
       onclick={() => app.step('stepOver')}
     />
     <IconButton
       icon="stepOut"
-      label="Step out (Shift+F11)"
+      label={t('panels.debug.stepOut')}
       disabled={running}
       onclick={() => app.step('stepOut')}
     />
-    <IconButton icon="restart" label="Restart (Ctrl+Shift+F5)" onclick={() => app.restart()} />
+    <IconButton icon="restart" label={t('panels.debug.restart')} onclick={() => app.restart()} />
     <IconButton
       icon="stop"
-      label="Stop (Shift+F5)"
+      label={t('panels.debug.stop')}
       tone="negative"
       disabled={s.state === 'empty'}
       onclick={() => s.stop()}
     />
   </div>
 
-  <SectionHeader title="Watch">
+  <SectionHeader title={t('panels.debug.watch')}>
     {#snippet actions()}
-      <IconButton icon="plus" label="Add expression" size="sm" onclick={() => (adding = true)} />
+      <IconButton
+        icon="plus"
+        label={t('panels.debug.addExpression')}
+        size="sm"
+        onclick={() => (adding = true)}
+      />
     {/snippet}
   </SectionHeader>
   <ul class="list">
@@ -126,13 +122,13 @@
         </span>
         <IconButton
           icon="close"
-          label="Remove {w}"
+          label={t('panels.debug.remove', { expr: w })}
           size="sm"
           onclick={() => (watches = watches.filter((_, j) => j !== i))}
         />
       </li>
     {:else}
-      {#if !adding}<li class="hint">Add an expression: A, [D], [C+1], C - 2, A == 'H'</li>{/if}
+      {#if !adding}<li class="hint">{t('panels.debug.watchHint')}</li>{/if}
     {/each}
   </ul>
   {#if adding}
@@ -145,8 +141,8 @@
     >
       <TextField
         bind:value={draft}
-        label="Watch expression"
-        placeholder="e.g. [D] or A + 1"
+        label={t('panels.debug.watchField')}
+        placeholder={t('panels.debug.watchPlaceholder')}
         mono
         autofocus
         onblur={addWatch}
@@ -154,7 +150,7 @@
     </form>
   {/if}
 
-  <SectionHeader title="Call stack" meta="depth {frames.length}" />
+  <SectionHeader title={t('panels.debug.callStack')} meta={t('panels.debug.depth', { n: frames.length })} />
   <ul class="list">
     {#if snap && s.program}
       <li class="row frame current">
@@ -172,15 +168,15 @@
         <span>SP {hex(snap.registers.sp)}</span>
       </li>
     {:else}
-      <li class="hint">Run or step a program to see its calls.</li>
+      <li class="hint">{t('panels.debug.noCalls')}</li>
     {/if}
   </ul>
 
-  <SectionHeader title="Breakpoints" meta={String(bps.length)}>
+  <SectionHeader title={t('panels.debug.breakpoints')} meta={String(bps.length)}>
     {#snippet actions()}
       <IconButton
         icon="plus"
-        label="Add breakpoint on the cursor line"
+        label={t('panels.debug.addBreakpoint')}
         size="sm"
         onclick={() => app.toggleBreakpoint()}
       />
@@ -193,7 +189,7 @@
         <input
           type="checkbox"
           checked={b.enabled !== false}
-          aria-label="Enable breakpoint {b.path}:{b.line + 1}"
+          aria-label={t('panels.debug.enableBreakpoint', { where: `${b.path}:${b.line + 1}` })}
           onchange={(e) => s.updateBreakpoint(b.path, b.line, { enabled: e.currentTarget.checked })}
         />
         <div class="bp-body">
@@ -206,24 +202,24 @@
           </button>
           <span class="mono muted code">{sourceLine(b.path, b.line)}</span>
           <label class="when">
-            <span>when</span>
+            <span>{t('panels.debug.when')}</span>
             <input
               class="mono"
               value={b.condition ?? ''}
               placeholder="A == 'H'"
-              aria-label="Condition for line {b.line + 1}"
+              aria-label={t('panels.debug.condition', { line: b.line + 1 })}
               onchange={(e) =>
                 s.updateBreakpoint(b.path, b.line, { condition: e.currentTarget.value.trim() || undefined })}
             />
           </label>
           <label class="when">
-            <span>hit</span>
+            <span>{t('panels.debug.hit')}</span>
             <input
               class="mono hits"
               type="number"
               min="1"
               value={b.hitCount ?? 1}
-              aria-label="Pause from hit number"
+              aria-label={t('panels.debug.hitAria')}
               onchange={(e) =>
                 s.updateBreakpoint(b.path, b.line, {
                   hitCount: Math.max(1, Number(e.currentTarget.value) || 1),
@@ -235,21 +231,21 @@
         </div>
         <IconButton
           icon="close"
-          label="Remove breakpoint"
+          label={t('panels.debug.removeBreakpoint')}
           size="sm"
           onclick={() => s.toggleBreakpoint(b.path, b.line)}
         />
       </li>
     {:else}
-      <li class="hint">Click the gutter left of a line number, or press F9.</li>
+      <li class="hint">{t('panels.debug.noBreakpoints')}</li>
     {/each}
   </ul>
 
   <label class="switch-row">
-    <span>Pause on runtime faults</span>
+    <span>{t('panels.debug.pauseOnFault')}</span>
     <Switch
       checked={app.settings.value.pauseOnFault}
-      label="Pause on runtime faults"
+      label={t('panels.debug.pauseOnFault')}
       onchange={(v) => {
         app.settings.set('pauseOnFault', v);
         app.applySettings();

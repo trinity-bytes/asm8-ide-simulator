@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../atoms/Icon.svelte';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -18,14 +19,16 @@
 
 <div class="problems">
   {#if !file}
-    <p class="empty">Open a file to see its problems.</p>
+    <p class="empty">{t('panels.problems.noFile')}</p>
   {:else}
     <ul>
       {#each diagnostics as d, i (i)}
         <li class={d.severity}>
           <Icon name={d.severity === 'error' ? 'error' : 'warning'} size={14} />
           <button type="button" class="msg" onclick={() => app.editor?.gotoLine(d.line)}>{d.message}</button>
-          <span class="where mono" title="{file.title}:{d.line + 1}">Ln {d.line + 1}</span>
+          <span class="where mono" title="{file.title}:{d.line + 1}"
+            >{t('panels.problems.line', { line: d.line + 1 })}</span
+          >
           {#if d.fix}
             <button
               type="button"
@@ -37,7 +40,7 @@
           {/if}
         </li>
       {:else}
-        <li class="empty">No problems in {file.title}.</li>
+        <li class="empty">{t('panels.problems.none', { file: file.title })}</li>
       {/each}
     </ul>
   {/if}

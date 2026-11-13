@@ -3,6 +3,7 @@
   import TextField from '../../atoms/TextField.svelte';
   import ToggleChip from '../../atoms/ToggleChip.svelte';
   import SectionHeader from '../../molecules/SectionHeader.svelte';
+  import { t, tn } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -77,7 +78,7 @@
       ws.updateText(tab.id, tab.text.replace(re, replace));
       files++;
     }
-    app.ui.toast(`Replaced in ${files} file${files === 1 ? '' : 's'}. Review and save.`);
+    app.ui.toast(tn('panels.search.replaced', files));
     await run();
   }
 
@@ -87,30 +88,41 @@
   }
 </script>
 
-<section class="view" aria-label="Search">
-  <SectionHeader title="Search" />
+<section class="view" aria-label={t('panels.search.title')}>
+  <SectionHeader title={t('panels.search.title')} />
   <div class="fields">
     <TextField
       bind:value={app.ui.searchQuery}
-      label="Search in files"
-      placeholder="Search in files"
+      label={t('panels.search.inFiles')}
+      placeholder={t('panels.search.inFiles')}
       icon="search"
     />
-    <TextField bind:value={replace} label="Replace with" placeholder="Replace" />
+    <TextField
+      bind:value={replace}
+      label={t('panels.search.replaceWith')}
+      placeholder={t('panels.search.replace')}
+    />
     <div class="opts">
-      <ToggleChip pressed={matchCase} onclick={() => (matchCase = !matchCase)}>Match case</ToggleChip>
-      <ToggleChip pressed={wholeWord} onclick={() => (wholeWord = !wholeWord)}>Whole word</ToggleChip>
+      <ToggleChip pressed={matchCase} onclick={() => (matchCase = !matchCase)}
+        >{t('panels.search.matchCase')}</ToggleChip
+      >
+      <ToggleChip pressed={wholeWord} onclick={() => (wholeWord = !wholeWord)}
+        >{t('panels.search.wholeWord')}</ToggleChip
+      >
       <span class="grow"></span>
-      <Button size="sm" disabled={!total} onclick={replaceAll}>Replace all</Button>
+      <Button size="sm" disabled={!total} onclick={replaceAll}>{t('panels.search.replaceAll')}</Button>
     </div>
   </div>
   {#if !ws.fs}
-    <p class="hint">Open a folder to search its files.</p>
+    <p class="hint">{t('panels.search.noFolder')}</p>
   {:else if app.ui.searchQuery}
     <p class="hint" aria-live="polite">
       {searching
-        ? 'Searching…'
-        : `${total}${total >= MAX_HITS ? '+' : ''} result${total === 1 ? '' : 's'} in ${results.length} file${results.length === 1 ? '' : 's'}`}
+        ? t('panels.search.searching')
+        : t('panels.search.summary', {
+            results: tn('panels.search.results', total, { n: `${total}${total >= MAX_HITS ? '+' : ''}` }),
+            files: tn('panels.search.files', results.length),
+          })}
     </p>
     {#each results as r (r.path)}
       <div class="file">

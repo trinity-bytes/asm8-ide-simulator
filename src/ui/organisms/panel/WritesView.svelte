@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatByte, hex } from '@core/index';
+  import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
 
   const app = AppController.use();
@@ -11,11 +12,15 @@
 
 <div class="writes">
   {#if total === 0}
-    <p class="empty">No memory writes yet. Every byte the program stores shows up here, newest first.</p>
+    <p class="empty">{t('panels.writes.empty')}</p>
   {:else}
     <table>
       <thead>
-        <tr><th>Step</th><th>Address</th><th>Old</th><th>New</th><th>Line</th></tr>
+        <tr>
+          <th>{t('panels.writes.step')}</th><th>{t('panels.writes.address')}</th><th
+            >{t('panels.writes.old')}</th
+          ><th>{t('panels.writes.new')}</th><th>{t('panels.writes.line')}</th>
+        </tr>
       </thead>
       <tbody>
         {#each rows as w, i (`${w.step}-${w.address}-${i}`)}
@@ -23,9 +28,9 @@
             <td class="mono">{w.step}</td>
             <td class="mono"
               >0x{hex(w.address)}{w.address >= 232
-                ? ' · display'
+                ? ` · ${t('panels.writes.display')}`
                 : w.address > 200 && w.address <= 231
-                  ? ' · stack'
+                  ? ` · ${t('panels.writes.stack')}`
                   : ''}</td
             >
             <td class="mono muted">{formatByte(w.previous, base)}</td>
@@ -43,7 +48,7 @@
         {/each}
       </tbody>
     </table>
-    {#if total > SHOWN}<p class="empty">Showing the latest {SHOWN} of {total} writes.</p>{/if}
+    {#if total > SHOWN}<p class="empty">{t('panels.writes.latest', { shown: SHOWN, total })}</p>{/if}
   {/if}
 </div>
 
