@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 (2026-11-22)
+
+### Added
+
+- Light themes: Asm8 Light (meets WCAG 4.5:1 for text and every syntax colour), Catppuccin Latte and GitHub Light.
+- The theme setting is a dropdown grouped into Dark and Light; the quick theme picker shows the same groups.
+- Drag the edges to resize the side bar and the Machine panel, like the bottom panel. Arrow keys and Home/End work on a focused edge, and a double click restores the default size.
+- The About dialog credits the fork author, with links to the website, GitHub, LinkedIn, Instagram, YouTube and X.
+
+### Fixed
+
+- Scrollbars and native controls follow the theme instead of always being dark.
+
 ## 1.1.0 (2026-11-12)
 
 ### Added
