@@ -86,9 +86,12 @@ Open a real folder (Chromium desktop, File System Access) or use the browser wor
 browser, OPFS). New, rename, duplicate, delete with confirmation, unsaved-changes prompts,
 "changed on disk" detection, download and import. Four example programs are built in.
 
-### 🎨 Seven themes
+### 🎨 Ten themes, dark and light
 
-Asm8 Dark (meets WCAG contrast), Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark.
+- **Dark:** Asm8 Dark, Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark.
+- **Light:** Asm8 Light, Catppuccin Latte and GitHub Light.
+
+Asm8 Dark and Asm8 Light meet WCAG contrast; the others keep their original colours.
 
 <p align="center">
   <img src="docs/images/themes.png" alt="Asm8 in six themes: Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark" width="100%" />

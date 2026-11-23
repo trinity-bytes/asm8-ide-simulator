@@ -15,6 +15,27 @@ test.describe('workbench', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
   });
 
+  test('settings groups themes into dark and light, and a light theme switches native controls', async ({
+    page,
+    errors,
+  }) => {
+    void errors;
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    const select = page.getByRole('combobox', { name: 'Color theme' });
+    await expect(select.locator('optgroup')).toHaveCount(2);
+    await expect(select.locator('optgroup[label="Light"] option')).toHaveText([
+      'Asm8 Light',
+      'Catppuccin Latte',
+      'GitHub Light',
+    ]);
+    await select.selectOption('github-light');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light');
+    await expect(page.locator('html')).toHaveCSS('color-scheme', 'light');
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light');
+  });
+
   test('settings persist across reloads', async ({ page, errors }) => {
     void errors;
     await page.goto('/');

@@ -86,6 +86,8 @@ export const en = {
   'panels.theme.list': 'Themes',
   'panels.theme.current': 'current',
   'panels.theme.contrast': 'meets contrast',
+  'panels.theme.group.dark': 'Dark',
+  'panels.theme.group.light': 'Light',
   // Toaster
   'panels.toaster.aria': 'Notifications',
   // DebugView
@@ -245,6 +247,8 @@ export const es: Translation<typeof en> = {
   'panels.theme.list': 'Temas',
   'panels.theme.current': 'actual',
   'panels.theme.contrast': 'cumple el contraste',
+  'panels.theme.group.dark': 'Oscuros',
+  'panels.theme.group.light': 'Claros',
   'panels.toaster.aria': 'Notificaciones',
   'panels.debug.aria': 'Ejecutar y depurar',
   'panels.debug.controls': 'Controles de depuración',
