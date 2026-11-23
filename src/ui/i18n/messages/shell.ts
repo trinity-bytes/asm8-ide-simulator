@@ -72,6 +72,8 @@ export const en = {
 
   // Desktop / tablet workbench.
   'shell.wb.resizePanel': 'Resize panel',
+  'shell.wb.resizeSide': 'Resize side bar',
+  'shell.wb.resizeMachine': 'Resize Machine panel',
   'shell.wb.machineDrawer': 'Machine drawer',
   'shell.wb.machine': 'Machine',
   'shell.wb.files': 'Files',
@@ -222,6 +224,8 @@ export const es: Translation<typeof en> = {
   'shell.sheet.copied': 'Línea copiada',
 
   'shell.wb.resizePanel': 'Cambiar el tamaño del panel',
+  'shell.wb.resizeSide': 'Cambiar el ancho de la barra lateral',
+  'shell.wb.resizeMachine': 'Cambiar el ancho del panel Machine',
   'shell.wb.machineDrawer': 'Panel lateral de la máquina',
   'shell.wb.machine': 'Máquina',
   'shell.wb.files': 'Archivos',

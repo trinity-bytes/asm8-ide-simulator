@@ -139,3 +139,63 @@
   --syntax-register: #e06c75;
   --syntax-keyword: #c678dd;
 }
+
+:root[data-theme='asm8-light'] {
+  --color-ground: #f4f4f5;
+  --color-surface: #fcfcfd;
+  --color-raised: #ebebed;
+  --color-border: #dcdcdf;
+  --color-rule: #e4e4e7;
+  --color-control: #d4d4d8;
+  --color-text: #18181b;
+  --color-muted: #5b5d63;
+  --color-accent: #2563b8;
+  --color-positive: #1c7457;
+  --color-negative: #b4233f;
+  --color-warning: #865700;
+  --syntax-label: #1f5fae;
+  --syntax-literal: #865700;
+  --syntax-comment: #5b5d63;
+  --syntax-register: #3f4147;
+  --syntax-keyword: #18181b;
+}
+
+:root[data-theme='catppuccin-latte'] {
+  --color-ground: #e6e9ef;
+  --color-surface: #eff1f5;
+  --color-raised: #ccd0da;
+  --color-border: #dce0e8;
+  --color-rule: #e6e9ef;
+  --color-control: #bcc0cc;
+  --color-text: #4c4f69;
+  --color-muted: #5c5f77;
+  --color-accent: #1e66f5;
+  --color-positive: #40a02b;
+  --color-negative: #d20f39;
+  --color-warning: #df8e1d;
+  --syntax-label: #1e66f5;
+  --syntax-literal: #fe640b;
+  --syntax-comment: #7c7f93;
+  --syntax-register: #df8e1d;
+  --syntax-keyword: #8839ef;
+}
+
+:root[data-theme='github-light'] {
+  --color-ground: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-raised: #f6f8fa;
+  --color-border: #d0d7de;
+  --color-rule: #d8dee4;
+  --color-control: #eaeef2;
+  --color-text: #1f2328;
+  --color-muted: #59636e;
+  --color-accent: #0969da;
+  --color-positive: #1a7f37;
+  --color-negative: #d1242f;
+  --color-warning: #9a6700;
+  --syntax-label: #8250df;
+  --syntax-literal: #0550ae;
+  --syntax-comment: #59636e;
+  --syntax-register: #953800;
+  --syntax-keyword: #cf222e;
+}

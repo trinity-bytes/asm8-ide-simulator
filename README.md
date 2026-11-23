@@ -86,9 +86,12 @@ Open a real folder (Chromium desktop, File System Access) or use the browser wor
 browser, OPFS). New, rename, duplicate, delete with confirmation, unsaved-changes prompts,
 "changed on disk" detection, download and import. Four example programs are built in.
 
-### 🎨 Seven themes
+### 🎨 Ten themes, dark and light
 
-Asm8 Dark (meets WCAG contrast), Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark.
+- **Dark:** Asm8 Dark, Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark.
+- **Light:** Asm8 Light, Catppuccin Latte and GitHub Light.
+
+Asm8 Dark and Asm8 Light meet WCAG contrast; the others keep their original colours.
 
 <p align="center">
   <img src="docs/images/themes.png" alt="Asm8 in six themes: Catppuccin Mocha, Tokyo Night, Monokai, Dracula, Aura Dark and One Dark" width="100%" />
@@ -97,7 +100,8 @@ Asm8 Dark (meets WCAG contrast), Catppuccin Mocha, Tokyo Night, Monokai, Dracula
 ### 📱 Desktop, tablet and phone. Online or offline.
 
 An installable PWA that works offline. Installed on desktop Chromium, `.asm` files open in Asm8
-straight from the file manager. Tablet and phone get their own layouts.
+straight from the file manager. Tablet and phone get their own layouts. On desktop, drag the edges
+to resize the side bar, the Machine panel and the bottom panel.
 
 <p align="center">
   <img src="docs/images/phone.png" alt="Asm8 on a phone: the code view at a breakpoint, the Machine view while running, and the console waiting for input" width="80%" />
@@ -155,6 +159,10 @@ ESLint enforces the direction: `core` cannot import `application`, `adapters`, `
 
 ## Credits
 
+- Fork, rewrite and redesign: **Jahat Trinidad**: [jahattrinidad.com](https://jahattrinidad.com) ·
+  [GitHub](https://github.com/trinity-bytes) · [LinkedIn](https://www.linkedin.com/in/trinitybytes) ·
+  [Instagram](https://www.instagram.com/trinitybytes/) · [YouTube](https://www.youtube.com/@jahattrinidad) ·
+  [X](https://x.com/trinitybytes)
 - Original simulator: [Simple 8-bit Assembler Simulator](https://github.com/Schweigi/assembler-simulator)
   by Marco Schweighauser, MIT license.
 - Interface designed in Figma; the screenshots in this README are exported from that file.

@@ -32,7 +32,8 @@ export const en = {
   'editor.settings.consoleWrap.title': 'Wrap long lines',
   'editor.settings.consoleWrap.desc': 'Off: long lines scroll sideways.',
   'editor.settings.theme.title': 'Color theme',
-  'editor.settings.theme.desc': 'Asm8 Dark meets contrast guidelines; the others keep their original colors.',
+  'editor.settings.theme.desc':
+    'Asm8 Dark and Asm8 Light meet contrast guidelines; the others keep their original colors.',
   'editor.settings.language.title': 'Language',
   'editor.settings.language.desc': 'Language of menus, messages and documentation.',
   'editor.settings.shortcuts.title': 'Keyboard shortcuts',
@@ -133,7 +134,7 @@ export const es: Translation<typeof en> = {
   'editor.settings.consoleWrap.desc': 'Desactivado: las líneas largas se desplazan horizontalmente.',
   'editor.settings.theme.title': 'Tema de color',
   'editor.settings.theme.desc':
-    'Asm8 Dark cumple las pautas de contraste; los demás conservan sus colores originales.',
+    'Asm8 Dark y Asm8 Light cumplen las pautas de contraste; los demás conservan sus colores originales.',
   'editor.settings.language.title': 'Idioma',
   'editor.settings.language.desc': 'Idioma de los menús, los mensajes y la documentación.',
   'editor.settings.shortcuts.title': 'Atajos de teclado',
