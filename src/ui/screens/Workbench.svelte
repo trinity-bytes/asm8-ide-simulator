@@ -1,5 +1,6 @@
 <script lang="ts">
   import IconButton from '../atoms/IconButton.svelte';
+  import Resizer from '../atoms/Resizer.svelte';
   import ActivityRail from '../organisms/ActivityRail.svelte';
   import EditorGroup from '../organisms/editor/EditorGroup.svelte';
   import MachinePanel from '../organisms/MachinePanel.svelte';
@@ -25,55 +26,60 @@
     layout === 'desktop' && app.workspace.active !== null && app.workspace.active.kind !== 'settings',
   );
 
-  // Panel height is resizable (drag the top edge), remembered per session.
-  let panelHeight = $state(272);
-  function startResize(e: PointerEvent) {
-    const startY = e.clientY;
-    const start = panelHeight;
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
-    const move = (ev: PointerEvent) =>
-      (panelHeight = Math.max(120, Math.min(innerHeight - 220, start + startY - ev.clientY)));
-    const up = () => {
-      el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerup', up);
-    };
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', up);
-  }
-  function resizeKey(e: KeyboardEvent) {
-    if (e.key === 'ArrowUp') panelHeight = Math.min(innerHeight - 220, panelHeight + 24);
-    else if (e.key === 'ArrowDown') panelHeight = Math.max(120, panelHeight - 24);
-  }
+  // Side bar, Machine panel and bottom panel are resizable (drag the edge), remembered per session.
+  const SIDE = { initial: 248, min: 180, max: 480 };
+  const MACHINE = { initial: 384, min: 340, max: 640 };
+  const PANEL = { initial: 272, min: 120 };
+  let sideWidth = $state(SIDE.initial);
+  let machineWidth = $state(MACHINE.initial);
+  let panelHeight = $state(PANEL.initial);
+  let viewportHeight = $state(900);
+  const panelMax = $derived(Math.max(PANEL.min, viewportHeight - 220));
 </script>
+
+<svelte:window bind:innerHeight={viewportHeight} />
 
 <div class="wb {layout}">
   <TitleBar {touch} onmenu={portrait ? () => (ui.filesSheet = true) : undefined} />
   <div class="body">
     {#if !portrait}<ActivityRail />{/if}
     {#if !portrait && ui.sideView}
-      <div class="side"><SideBar {touch} /></div>
+      <div class="side" style:width="{touch ? SIDE.initial : sideWidth}px"><SideBar {touch} /></div>
+      {#if !touch}
+        <Resizer
+          axis="x"
+          grow={1}
+          size={sideWidth}
+          {...SIDE}
+          label={t('shell.wb.resizeSide')}
+          onresize={(v) => (sideWidth = v)}
+        />
+      {/if}
     {/if}
-    <main class="center" style:--panel-h="{portrait ? 420 : panelHeight}px">
+    <main class="center" style:--panel-h="{portrait ? 420 : Math.min(panelHeight, panelMax)}px">
       <div class="editor"><EditorGroup /></div>
-      <!-- A focusable separator is a widget (resize with arrow keys). -->
-      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-      <div
-        class="resizer"
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label={t('shell.wb.resizePanel')}
-        aria-valuenow={panelHeight}
-        aria-valuemin={120}
-        aria-valuemax={1000}
-        tabindex="0"
-        onpointerdown={startResize}
-        onkeydown={resizeKey}
-      ></div>
+      <Resizer
+        axis="y"
+        grow={-1}
+        size={Math.min(panelHeight, panelMax)}
+        initial={PANEL.initial}
+        min={PANEL.min}
+        max={panelMax}
+        label={t('shell.wb.resizePanel')}
+        onresize={(v) => (panelHeight = v)}
+      />
       <div class="panel"><BottomPanel withMachine={portrait} {touch} /></div>
     </main>
     {#if showMachine}
-      <div class="machine"><MachinePanel /></div>
+      <Resizer
+        axis="x"
+        grow={-1}
+        size={machineWidth}
+        {...MACHINE}
+        label={t('shell.wb.resizeMachine')}
+        onresize={(v) => (machineWidth = v)}
+      />
+      <div class="machine" style:width="{machineWidth}px"><MachinePanel /></div>
     {/if}
     {#if layout === 'tablet-landscape'}
       {#if ui.machineDrawer}
@@ -119,7 +125,6 @@
     display: flex;
   }
   .side {
-    width: var(--sidebar-w);
     flex: none;
     min-height: 0;
   }
@@ -133,35 +138,7 @@
   .panel {
     min-height: 0;
   }
-  .resizer {
-    position: relative;
-    z-index: 2;
-    height: 0;
-    cursor: ns-resize;
-  }
-  .resizer::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: -3px;
-    height: 6px;
-  }
-  .resizer:hover::before,
-  .resizer:focus-visible::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: -1px;
-    height: 2px;
-    background: var(--color-accent);
-  }
-  .resizer:focus-visible {
-    box-shadow: none;
-  }
   .machine {
-    width: var(--machine-w);
     flex: none;
     min-height: 0;
     border-left: 1px solid var(--color-border);

@@ -100,7 +100,8 @@ Asm8 Dark and Asm8 Light meet WCAG contrast; the others keep their original colo
 ### 📱 Desktop, tablet and phone. Online or offline.
 
 An installable PWA that works offline. Installed on desktop Chromium, `.asm` files open in Asm8
-straight from the file manager. Tablet and phone get their own layouts.
+straight from the file manager. Tablet and phone get their own layouts. On desktop, drag the edges
+to resize the side bar, the Machine panel and the bottom panel.
 
 <p align="center">
   <img src="docs/images/phone.png" alt="Asm8 on a phone: the code view at a breakpoint, the Machine view while running, and the console waiting for input" width="80%" />

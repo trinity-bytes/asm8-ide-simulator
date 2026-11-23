@@ -36,6 +36,29 @@ test.describe('workbench', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'github-light');
   });
 
+  test('the side bar and Machine panel resize from their edges', async ({ page, errors }) => {
+    void errors;
+    await openExample(page, 'hello.asm');
+    const side = page.getByRole('separator', { name: 'Resize side bar' });
+    await side.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(side).toHaveAttribute('aria-valuenow', '272');
+    await page.keyboard.press('End');
+    await expect(side).toHaveAttribute('aria-valuenow', '480');
+    // The separator is 0px wide; its 6px grab area is a pseudo-element, so click by coordinates.
+    const edge = (await side.boundingBox())!;
+    await page.mouse.dblclick(edge.x, edge.y + edge.height / 2);
+    await expect(side).toHaveAttribute('aria-valuenow', '248');
+
+    const machine = page.getByRole('separator', { name: 'Resize Machine panel' });
+    const box = (await machine.boundingBox())!;
+    await page.mouse.move(box.x + 1, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 99, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.up();
+    await expect(machine).toHaveAttribute('aria-valuenow', '484');
+  });
+
   test('settings persist across reloads', async ({ page, errors }) => {
     void errors;
     await page.goto('/');
