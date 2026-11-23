@@ -8,7 +8,7 @@
   import TextField from '../../atoms/TextField.svelte';
   import { i18n, t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
-  import { applyTheme, THEMES, type ThemeId } from '../../theme/themes';
+  import { applyTheme, THEME_GROUPS, type ThemeId } from '../../theme/themes';
 
   const app = AppController.use();
   const st = app.settings;
@@ -202,22 +202,16 @@
                     onchange={(v) => set('consoleWrap', v)}
                   />
                 {:else if r.key === 'theme'}
-                  <div class="themes" role="radiogroup" aria-label={title(r)} id="set-theme">
-                    {#each THEMES as theme (theme.id)}
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={st.value.theme === theme.id}
-                        class="theme"
-                        onclick={() => setTheme(theme.id)}
-                      >
-                        <span class="sw" style:background={theme.swatches[0]}>
-                          {#each theme.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}
-                        </span>
-                        {theme.name}
-                      </button>
-                    {/each}
-                  </div>
+                  <Select
+                    id="set-theme"
+                    label={title(r)}
+                    value={st.value.theme}
+                    groups={THEME_GROUPS.map((g) => ({
+                      label: t(`panels.theme.group.${g.appearance}`),
+                      options: g.themes.map((theme) => ({ value: theme.id, label: theme.name })),
+                    }))}
+                    onchange={setTheme}
+                  />
                 {:else if r.key === 'language'}
                   <Select
                     id="set-language"
@@ -328,36 +322,6 @@
   }
   .control {
     flex: none;
-  }
-  .themes {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-  }
-  .theme {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 32px;
-    padding: 0 10px 0 4px;
-    border-radius: 6px;
-    border: 1px solid var(--color-control);
-    font-size: 12px;
-    text-align: left;
-  }
-  .theme[aria-checked='true'] {
-    border-color: var(--color-text);
-  }
-  .sw {
-    display: flex;
-    gap: 2px;
-    padding: 5px;
-    border-radius: 4px;
-  }
-  .sw i {
-    width: 6px;
-    height: 12px;
-    border-radius: 1px;
   }
   .muted {
     color: var(--color-muted);

@@ -9,6 +9,9 @@ export const THEME_IDS = [
   'dracula',
   'aura-dark',
   'one-dark',
+  'asm8-light',
+  'catppuccin-latte',
+  'github-light',
 ] as const;
 export type ThemeSetting = (typeof THEME_IDS)[number];
 

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { t } from '../../i18n/i18n.svelte';
   import { AppController } from '../../state/app.svelte';
-  import { applyTheme, THEMES, type ThemeId } from '../../theme/themes';
+  import { applyTheme, THEME_GROUPS, THEMES, type ThemeId } from '../../theme/themes';
+
+  /** Themes whose palette is tested against WCAG 4.5:1. */
+  const CONTRAST_SAFE = new Set<ThemeId>(['asm8-dark', 'asm8-light']);
 
   const app = AppController.use();
   const original = app.settings.value.theme;
@@ -47,23 +50,27 @@
     aria-activedescendant="theme-{index}"
     {onkeydown}
   >
-    {#each THEMES as theme, i (theme.id)}
-      <li
-        id="theme-{i}"
-        role="option"
-        aria-selected={i === index}
-        class:sel={i === index}
-        onclick={() => ((index = i), done(true))}
-        onmouseenter={() => (index = i)}
-        onkeydown={() => {}}
-      >
-        <span class="sw" style:background={theme.swatches[0]}
-          >{#each theme.swatches.slice(1) as c, i (i)}<i style:background={c}></i>{/each}</span
+    {#each THEME_GROUPS as group (group.appearance)}
+      <li class="group" role="presentation">{t(`panels.theme.group.${group.appearance}`)}</li>
+      {#each group.themes as theme (theme.id)}
+        {@const i = THEMES.indexOf(theme)}
+        <li
+          id="theme-{i}"
+          role="option"
+          aria-selected={i === index}
+          class:sel={i === index}
+          onclick={() => ((index = i), done(true))}
+          onmouseenter={() => (index = i)}
+          onkeydown={() => {}}
         >
-        <span>{theme.name}</span>
-        {#if theme.id === original}<span class="cur">{t('panels.theme.current')}</span>{/if}
-        {#if theme.id === 'asm8-dark'}<span class="cur">{t('panels.theme.contrast')}</span>{/if}
-      </li>
+          <span class="sw" style:background={theme.swatches[0]}
+            >{#each theme.swatches.slice(1) as c, j (j)}<i style:background={c}></i>{/each}</span
+          >
+          <span>{theme.name}</span>
+          {#if theme.id === original}<span class="cur">{t('panels.theme.current')}</span>{/if}
+          {#if CONTRAST_SAFE.has(theme.id)}<span class="cur">{t('panels.theme.contrast')}</span>{/if}
+        </li>
+      {/each}
     {/each}
   </ul>
 </div>
@@ -112,6 +119,16 @@
   }
   .sel {
     background: var(--color-control);
+  }
+  .group {
+    height: 26px;
+    padding-top: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+    cursor: default;
   }
   .sw {
     display: flex;
