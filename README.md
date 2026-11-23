@@ -159,6 +159,10 @@ ESLint enforces the direction: `core` cannot import `application`, `adapters`, `
 
 ## Credits
 
+- Fork, rewrite and redesign: **Jahat Trinidad**: [jahattrinidad.com](https://jahattrinidad.com) ·
+  [GitHub](https://github.com/trinity-bytes) · [LinkedIn](https://www.linkedin.com/in/trinitybytes) ·
+  [Instagram](https://www.instagram.com/trinitybytes/) · [YouTube](https://www.youtube.com/@jahattrinidad) ·
+  [X](https://x.com/trinitybytes)
 - Original simulator: [Simple 8-bit Assembler Simulator](https://github.com/Schweigi/assembler-simulator)
   by Marco Schweighauser, MIT license.
 - Interface designed in Figma; the screenshots in this README are exported from that file.

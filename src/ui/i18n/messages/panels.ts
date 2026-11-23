@@ -46,8 +46,7 @@ export const en = {
   // AboutDialog
   'panels.about.title': 'About Asm8',
   'panels.about.version': 'Version {version}',
-  'panels.about.description':
-    'An 8-bit CPU simulator and assembly IDE. Based on Simple 8-bit Assembler Simulator by Marco Schweighauser (MIT).',
+  'panels.about.description': 'An 8-bit CPU simulator and assembly IDE.',
   'panels.about.online': 'Online',
   'panels.about.offline': 'Offline',
   'panels.about.installed': 'installed app',
@@ -57,6 +56,11 @@ export const en = {
   'panels.about.filesFolders': 'folders on your disk or the browser workspace',
   'panels.about.filesBrowser': 'browser workspace (this browser cannot open folders)',
   'panels.about.install': 'Install',
+  'panels.about.credits': 'Credits',
+  'panels.about.forkBy': 'Fork and redesign by',
+  'panels.about.website': 'Website',
+  'panels.about.basedOn': 'Based on',
+  'panels.about.originalBy': 'by {author} (MIT).',
   // CommandPalette
   'panels.palette.recent': 'Recently used',
   'panels.palette.other': 'Other commands',
@@ -210,8 +214,7 @@ export const es: Translation<typeof en> = {
   'panels.writes.latest': 'Mostrando las últimas {shown} de {total} escrituras.',
   'panels.about.title': 'Acerca de Asm8',
   'panels.about.version': 'Versión {version}',
-  'panels.about.description':
-    'Simulador de CPU de 8 bits e IDE de ensamblador. Basado en Simple 8-bit Assembler Simulator de Marco Schweighauser (MIT).',
+  'panels.about.description': 'Simulador de CPU de 8 bits e IDE de ensamblador.',
   'panels.about.online': 'En línea',
   'panels.about.offline': 'Sin conexión',
   'panels.about.installed': 'app instalada',
@@ -221,6 +224,11 @@ export const es: Translation<typeof en> = {
   'panels.about.filesFolders': 'carpetas en tu disco o el espacio de trabajo del navegador',
   'panels.about.filesBrowser': 'espacio de trabajo del navegador (este navegador no puede abrir carpetas)',
   'panels.about.install': 'Instalar',
+  'panels.about.credits': 'Créditos',
+  'panels.about.forkBy': 'Fork y rediseño de',
+  'panels.about.website': 'Sitio web',
+  'panels.about.basedOn': 'Basado en',
+  'panels.about.originalBy': 'de {author} (MIT).',
   'panels.palette.recent': 'Usados recientemente',
   'panels.palette.other': 'Otros comandos',
   'panels.palette.commands': 'Comandos',
